@@ -1,4 +1,4 @@
-import { Account, Entity, Organization, Product } from "@/data/types";
+import { Account, Entity, Organization, Product, OrganizationRole } from "@/data/types";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/utils/api";
@@ -51,6 +51,11 @@ interface OrgContextData {
     refetchAccountId: (accountId: string) => void;
     refetchAccounts: () => void;
 
+    roles: OrganizationRole[];
+    updateRole: (roleId: string, updatedData: Partial<OrganizationRole>) => void;
+    refetchRoleId: (roleId: string) => void;
+    refetchRoles: () => void;
+
     buyCart: Cart;
     updateBuyCart: (cart: Partial<Cart>) => void;
     clearBuyCart: () => void;
@@ -73,6 +78,10 @@ const OrgContext = createContext<OrgContextData>({
     updateAccount: () => {},
     refetchAccountId: () => {},
     refetchAccounts: () => {},
+    roles: [],
+    updateRole: () => {},
+    refetchRoleId: () => {},
+    refetchRoles: () => {},
     buyCart: {
         entity: null,
         tax: 0,
@@ -140,6 +149,7 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
     const [organization, setOrganization] = useState<Organization | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
+    const [roles, setRoles] = useState<OrganizationRole[]>([]);
     const [buyCart, setBuyCart] = useState<Cart>(() => createInitialState("buy", orgId, null));
     const [sellCart, setSellCart] = useState<Cart>(() => createInitialState("sell", orgId, null));
 
@@ -215,6 +225,35 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
         setAccounts((prev) => prev.map((a) => (a.id === accountId ? { ...a, ...updatedData } : a)));
     };
 
+    const refetchRoles = async () => {
+        try {
+            const data = await (await api.get(`/orgs/${orgId}/roles`)).data;
+            setRoles(data);
+        } catch (error) {
+            console.error("Error fetching roles:", error);
+        }
+    };
+
+    const refetchRoleId = async (roleId: string) => {
+        try {
+            const data = await (await api.get(`/orgs/${orgId}/roles/${roleId}`)).data;
+            setRoles((prev) => {
+                const exists = prev.some((r) => r.id === roleId);
+                if (exists) {
+                    return prev.map((r) => (r.id === roleId ? data : r));
+                } else {
+                    return [...prev, data];
+                }
+            });
+        } catch (error) {
+            console.error("Error fetching role:", error);
+        }
+    };
+
+    const updateRole = (roleId: string, updatedData: Partial<OrganizationRole>) => {
+        setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, ...updatedData } : r)));
+    };
+
     const fetchOrganization = async (orgId: string) => {
         try {
             setStatus("loading");
@@ -233,6 +272,7 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 await fetchOrganization(orgId);
                 await refetchProducts();
                 await refetchAccounts();
+                await refetchRoles();
             }
         };
         fetchData();
@@ -291,6 +331,10 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 updateAccount,
                 refetchAccountId,
                 refetchAccounts,
+                roles,
+                updateRole,
+                refetchRoleId,
+                refetchRoles,
                 buyCart,
                 updateBuyCart,
                 clearBuyCart,

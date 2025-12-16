@@ -23,7 +23,7 @@ export function PermissionsCard({ orgId, permissions }: PermissionsCardProps) {
                     {permissions.map((perm) => (
                         <Badge key={perm.id} variant="secondary">
                             <Shield className="h-3 w-3 mr-1" />
-                            {perm.access}
+                            {"ACCESS"}
                         </Badge>
                     ))}
                 </div>

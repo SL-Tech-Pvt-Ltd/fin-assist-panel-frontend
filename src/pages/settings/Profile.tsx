@@ -485,7 +485,7 @@ export default function ProfilePage() {
                                 </div>
                                 {user.roleAccess && user.roleAccess.length > 0 && (
                                     <div className="flex flex-wrap gap-1">
-                                        {Array.from(new Set(user.roleAccess.map((r) => r.access)))
+                                        {Array.from(new Set(user.roleAccess.map(() => "ACCESS")))
                                             .slice(0, 4)
                                             .map((access) => (
                                                 <Badge

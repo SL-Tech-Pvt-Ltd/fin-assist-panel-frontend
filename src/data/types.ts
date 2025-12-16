@@ -30,14 +30,99 @@ export interface Organization {
     updatedAt?: string;
 }
 
-export type ACCESS = "ORG" | "ACCOUNT" | "PRODUCT" | "ENTITY" | "ORDER";
+// enum Permission {
+//     ORGANIZATION_READ
+//     // ORGANIZATION_CREATE
+//     ORGANIZATION_UPDATE
+//     ORGANIZATION_ADMIN
+
+//     ACCOUNT_READ
+//     ACCOUNT_CREATE
+//     ACCOUNT_UPDATE
+//     ACCOUNT_ADMIN
+
+//     PRODUCT_READ
+//     PRODUCT_CREATE
+//     PRODUCT_UPDATE
+//     PRODUCT_ADMIN
+
+//     ENTITY_READ
+//     ENTITY_CREATE
+//     ENTITY_UPDATE
+//     ENTITY_ADMIN
+
+//     ORDER_READ
+//     ORDER_CREATE
+//     ORDER_UPDATE
+//     ORDER_ADMIN
+
+//     POS_READ
+//     POS_CREATE
+//     POS_UPDATE
+//     POS_ADMIN
+// }
+
+// model OrganizationRole {
+//     id String @id @default(cuid())
+
+//     title       String
+//     description String?
+
+//     organizationId String
+//     organization   Organization @relation(fields: [organizationId], references: [id])
+
+//     permissions Permission[]
+
+//     createdAt    DateTime     @default(now())
+//     updatedAt    DateTime     @updatedAt
+//     roleAccesses RoleAccess[]
+// }
+
+export type Permission =
+    | "ORGANIZATION_READ"
+    | "ORGANIZATION_UPDATE"
+    | "ORGANIZATION_ADMIN"
+    | "ACCOUNT_READ"
+    | "ACCOUNT_CREATE"
+    | "ACCOUNT_UPDATE"
+    | "ACCOUNT_ADMIN"
+    | "PRODUCT_READ"
+    | "PRODUCT_CREATE"
+    | "PRODUCT_UPDATE"
+    | "PRODUCT_ADMIN"
+    | "ENTITY_READ"
+    | "ENTITY_CREATE"
+    | "ENTITY_UPDATE"
+    | "ENTITY_ADMIN"
+    | "ORDER_READ"
+    | "ORDER_CREATE"
+    | "ORDER_UPDATE"
+    | "ORDER_ADMIN"
+    | "POS_READ"
+    | "POS_CREATE"
+    | "POS_UPDATE"
+    | "POS_ADMIN";
+
+export interface OrganizationRole {
+    id: string;
+    title: string;
+    description?: string | null;
+    organizationId: string;
+    permissions: Permission[];
+    createdAt: string;
+    updatedAt: string;
+}
 
 export interface RoleAccess {
     id: string;
     userId: string;
     organizationId: string;
-    access: ACCESS;
     user?: User;
+
+    organizationRoleId?: string | null;
+
+    role?: OrganizationRole;
+
     organization?: Organization;
     createdAt: string;
 }

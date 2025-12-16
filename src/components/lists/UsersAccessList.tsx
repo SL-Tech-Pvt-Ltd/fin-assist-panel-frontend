@@ -1,128 +1,142 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { RoleAccess } from "@/data/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { TableComponent } from "../modules/Table";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { InviteUser } from "../modals/InviteUser";
 import { RemoveModal } from "../modals/RemoveModal";
+import { useOrg } from "@/providers/org-provider";
+import { api } from "@/utils/api";
+import { toast } from "@/hooks/use-toast";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
 interface UserAccessListProps {
     access: RoleAccess[];
     inviteUser: (email: string) => Promise<void>;
     removeUser: (userId: string) => Promise<void>;
-}
-
-interface UserInfo {
-    id: string;
-    name: string;
-    email: string;
-    permissions: string[];
+    onRoleUpdate?: () => void;
 }
 
 const UserAccessList: React.FC<UserAccessListProps> = ({
     access,
     removeUser,
     inviteUser,
+    onRoleUpdate,
 }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const userCols: ColumnDef<UserInfo>[] = [
+    const { orgId, roles } = useOrg();
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
+    const handleRoleChange = async (userId: string, roleId: string | null) => {
+        setUpdatingUserId(userId);
+        try {
+            await api.put(`/orgs/${orgId}/users/${userId}/role`, {
+                organizationRoleId: roleId === "none" ? null : roleId,
+            });
+            toast({
+                title: "Success",
+                description: "User role updated successfully",
+            });
+            onRoleUpdate?.();
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to update user role",
+                variant: "destructive",
+            });
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
+    const columns: ColumnDef<RoleAccess>[] = [
         {
-            accessorKey: "name",
+            accessorKey: "user.name",
             header: "Name",
+            cell: ({ row }) => row.original.user?.name || "Unknown",
         },
         {
-            accessorKey: "email",
+            accessorKey: "user.email",
             header: "Email",
+            cell: ({ row }) => row.original.user?.email || "N/A",
         },
         {
-            accessorKey: "permissions",
-            header: "Permissions",
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1">
-                    {row.original.permissions.map((perm) => (
-                        <span
-                            key={perm}
-                            className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
+            id: "role",
+            header: "Role",
+            cell: ({ row }) => {
+                const isUpdating = updatingUserId === row.original.userId;
+                const currentRoleId = row.original.organizationRoleId || null;
+
+                return (
+                    <div className="flex items-center gap-2">
+                        {isUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+                        <Select
+                            value={currentRoleId || "none"}
+                            onValueChange={(value) => handleRoleChange(row.original.userId, value)}
+                            disabled={isUpdating}
                         >
-                            {perm}
-                        </span>
-                    ))}
-                </div>
-            ),
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">
+                                    <span className="text-muted-foreground">No Role</span>
+                                </SelectItem>
+                                {roles.map((role) => (
+                                    <SelectItem key={role.id} value={role.id}>
+                                        <div className="flex items-center gap-2">
+                                            <Shield className="h-3 w-3" />
+                                            {role.title}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                );
+            },
             enableSorting: false,
         },
         {
-            accessorKey: "id",
+            id: "actions",
             header: "Actions",
             cell: ({ row }) => (
                 <RemoveModal
                     title="Remove Access"
-                    description={`Are you sure you want to remove access for ${row.original.name}?`}
-                    onRemove={() => removeUser(row.original.id)}
+                    description={`Are you sure you want to remove access for ${
+                        row.original.user?.name || "this user"
+                    }?`}
+                    onRemove={() => removeUser(row.original.userId)}
                 />
             ),
             enableSorting: false,
         },
     ];
 
-    const users = useMemo(() => {
-        return access.reduce<UserInfo[]>(
-            (acc, { userId, user, access: accessLevel }) => {
-                const existingUser = acc.find((u) => u.id === userId);
-
-                if (existingUser) {
-                    if (!existingUser.permissions.includes(accessLevel)) {
-                        existingUser.permissions.push(accessLevel);
-                    }
-                } else {
-                    acc.push({
-                        id: userId,
-                        name: user?.name || "Unknown",
-                        email: user?.email || "N/A",
-                        permissions: [accessLevel],
-                    });
-                }
-
-                return acc;
-            },
-            []
-        );
-    }, [access]);
-
-    useEffect(() => {
-        setIsLoading(false);
-    }, [users]);
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-48">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-            </div>
-        );
-    }
-
     return (
         <div className="bg-gray-50 rounded-2xl shadow-none">
             <Card className="border-none w-full shadow-none p-0">
                 <CardHeader className="flex flex-row justify-between items-center border-b pb-4">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        User Access
-                    </h2>
+                    <h2 className="text-xl font-bold text-gray-800">User Access</h2>
                     <InviteUser onInvite={inviteUser} />
                 </CardHeader>
                 <CardContent className="pt-4">
-                    {users.length ? (
+                    {access.length ? (
                         <TableComponent
-                            columns={userCols}
-                            data={users}
+                            columns={columns}
+                            data={access}
                             allowSelection={false}
                             showFooter={true}
                             allowPagination
                         />
                     ) : (
-                        <div className="text-center text-gray-500">
-                            No users with access.
-                        </div>
+                        <div className="text-center text-gray-500">No users with access.</div>
                     )}
                 </CardContent>
             </Card>

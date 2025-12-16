@@ -136,11 +136,11 @@ export default function OrganizationsPage() {
                                                             variant="secondary"
                                                             className="font-medium"
                                                         >
-                                                            {perm.access}
+                                                            {"STAFF"}
                                                         </Badge>
                                                         <div>
                                                             <span className="text-sm font-medium">
-                                                                {getAccessDescription(perm.access)}
+                                                                {getAccessDescription("ORG")}
                                                             </span>
                                                             {perm.createdAt && (
                                                                 <p className="text-xs text-muted-foreground">

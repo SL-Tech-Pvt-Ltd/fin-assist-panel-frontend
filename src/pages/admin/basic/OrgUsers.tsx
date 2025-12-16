@@ -144,7 +144,12 @@ export default function OrgUsers() {
 
         if (activeTab === "members") {
             return (
-                <UserAccessList access={access} removeUser={removeUser} inviteUser={inviteUser} />
+                <UserAccessList
+                    access={access}
+                    removeUser={removeUser}
+                    inviteUser={inviteUser}
+                    onRoleUpdate={refreshData}
+                />
             );
         }
 
@@ -161,7 +166,7 @@ export default function OrgUsers() {
         }
 
         return <UserInviteList invites={invites} removeInvite={removeInvite} />;
-    }, [loading, access, invites, activeTab, removeUser, inviteUser, removeInvite]);
+    }, [loading, access, invites, activeTab, removeUser, inviteUser, removeInvite, refreshData]);
 
     return (
         <div className="space-y-6">

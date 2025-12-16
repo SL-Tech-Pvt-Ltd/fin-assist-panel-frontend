@@ -2,6 +2,7 @@ import { IconType } from "react-icons/lib";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { MdOutlineSettings } from "react-icons/md";
 import { LuUsers } from "react-icons/lu";
+import { LuShield } from "react-icons/lu";
 import { TbUsersGroup } from "react-icons/tb";
 import { FaShoppingBag } from "react-icons/fa";
 import { MdSell } from "react-icons/md";
@@ -30,6 +31,11 @@ export const getMainNavItems = (orgId: string): MainNavItems[] => {
             name: "Users",
             url: "/org/" + orgId + "/users",
             icon: LuUsers,
+        },
+        {
+            name: "Roles",
+            url: "/org/" + orgId + "/roles",
+            icon: LuShield,
         },
         {
             name: "Entities",

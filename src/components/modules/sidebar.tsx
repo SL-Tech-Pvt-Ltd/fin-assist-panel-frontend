@@ -200,6 +200,11 @@ export default function Sidebar() {
             path: getPathname("users"),
             icon: OrgIcon,
         },
+        {
+            name: "Roles",
+            path: getPathname("roles"),
+            icon: OrgIcon,
+        },
     ];
 
     const toggleMenu = (name: string) => {

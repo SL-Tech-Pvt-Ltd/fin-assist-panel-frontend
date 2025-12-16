@@ -8,6 +8,7 @@ import SettingLayout from "./layouts/SettingLayout";
 import ProfilePage from "./pages/settings/Profile";
 import UserOrgs from "./pages/settings/Orgs";
 import OrgUsers from "./pages/admin/basic/OrgUsers";
+import OrgRoles from "./pages/admin/basic/OrgRoles";
 import { MainLayout } from "./layouts/MainLayout";
 import OrgInfoPage from "./pages/admin/basic/OrgInfo";
 import OrgCategories from "./pages/admin/products/Categories";
@@ -106,6 +107,10 @@ export const routes: RouteObject[] = [
                     {
                         element: <OrgUsers />,
                         path: "users",
+                    },
+                    {
+                        element: <OrgRoles />,
+                        path: "roles",
                     },
                     {
                         element: <OrgInfoPage />,
