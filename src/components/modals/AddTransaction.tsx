@@ -65,6 +65,7 @@ const INCOME_CATEGORIES: { value: TransactionCategory; label: string }[] = [
 
 interface AddTransactionProps {
     account: Account | null;
+    accounts: Account[];
     onAddTransaction: (
         amount: number,
         description: string,
@@ -76,8 +77,8 @@ interface AddTransactionProps {
     ) => Promise<void>;
 }
 
-export function AddTransactionDialog({ account, onAddTransaction }: AddTransactionProps) {
-    const { orgId, accounts } = useOrg();
+export function AddTransactionDialog({ account, onAddTransaction, accounts }: AddTransactionProps) {
+    const { orgId } = useOrg();
     const [open, setOpen] = useState(false);
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");

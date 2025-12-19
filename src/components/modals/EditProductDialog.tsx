@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/utils/api";
 import { Product } from "@/data/types";
-import { ProductOptions } from "@/pages/admin/products/types";
+import { ProductOptions } from "@/pages/org/products/types";
 import {
     Dialog,
     DialogContent,
@@ -16,7 +16,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ImageUpload, ImageFile } from "@/pages/admin/products/image-upload";
+import { ImageUpload, ImageFile } from "@/pages/org/products/image-upload";
 
 interface EditProductDialogProps {
     product: ProductWithOptions | null;

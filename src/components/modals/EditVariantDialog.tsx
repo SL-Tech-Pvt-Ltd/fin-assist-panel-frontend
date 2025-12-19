@@ -14,7 +14,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { ImageUpload, ImageFile } from "@/pages/admin/products/image-upload";
+import { ImageUpload, ImageFile } from "@/pages/org/products/image-upload";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EditVariantDialogProps {

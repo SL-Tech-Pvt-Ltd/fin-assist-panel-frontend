@@ -1,4 +1,4 @@
-import { Account, Entity, Organization, Product, OrganizationRole, Permission } from "@/data/types";
+import { Entity, Organization, OrganizationRole, Permission } from "@/data/types";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/utils/api";
@@ -44,16 +44,6 @@ interface OrgContextData {
     myPermissions: Permission[];
     refetch: () => void;
 
-    products: Product[];
-    updateProduct: (productId: string, updatedData: Partial<Product>) => void;
-    refetchProductId: (productId: string) => void;
-    refetchProducts: () => void;
-
-    accounts: Account[];
-    updateAccount: (accountId: string, updatedData: Partial<Account>) => void;
-    refetchAccountId: (accountId: string) => void;
-    refetchAccounts: () => void;
-
     roles: OrganizationRole[];
     updateRole: (roleId: string, updatedData: Partial<OrganizationRole>) => void;
     refetchRoleId: (roleId: string) => void;
@@ -75,14 +65,6 @@ const OrgContext = createContext<OrgContextData>({
     myPermissions: [],
     status: "idle",
     refetch: () => {},
-    products: [],
-    updateProduct: () => {},
-    refetchProducts: () => {},
-    refetchProductId: () => {},
-    accounts: [],
-    updateAccount: () => {},
-    refetchAccountId: () => {},
-    refetchAccounts: () => {},
     roles: [],
     updateRole: () => {},
     refetchRoleId: () => {},
@@ -152,8 +134,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
     const { orgId } = useParams<{ orgId: string }>() as { orgId: string };
     const [status, setStatus] = useState<"loading" | "error" | "success">("loading");
     const [organization, setOrganization] = useState<Organization | null>(null);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [accounts, setAccounts] = useState<Account[]>([]);
     const [roles, setRoles] = useState<OrganizationRole[]>([]);
     const [buyCart, setBuyCart] = useState<Cart>(() => createInitialState("buy", orgId, null));
     const [sellCart, setSellCart] = useState<Cart>(() => createInitialState("sell", orgId, null));
@@ -198,64 +178,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
             localStorage.setItem(`CART-${orgId}-sell`, JSON.stringify(sellCart));
         }
     }, [sellCart, orgId]);
-
-    const refetchProducts = async () => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/products`)).data;
-            setProducts(data);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-        }
-    };
-
-    const refetchProductId = async (productId: string) => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/products/${productId}`)).data;
-            setProducts((prev) => {
-                const exists = prev.some((p) => p.id === productId);
-                if (exists) {
-                    return prev.map((p) => (p.id === productId ? data : p));
-                } else {
-                    return [...prev, data];
-                }
-            });
-        } catch (error) {
-            console.error("Error fetching product:", error);
-        }
-    };
-
-    const updateProduct = (productId: string, updatedData: Partial<Product>) => {
-        setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, ...updatedData } : p)));
-    };
-
-    const refetchAccounts = async () => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/accounts`)).data;
-            setAccounts(data);
-        } catch (error) {
-            console.error("Error fetching accounts:", error);
-        }
-    };
-
-    const refetchAccountId = async (accountId: string) => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/accounts/${accountId}`)).data;
-            setAccounts((prev) => {
-                const exists = prev.some((a) => a.id === accountId);
-                if (exists) {
-                    return prev.map((a) => (a.id === accountId ? data : a));
-                } else {
-                    return [...prev, data];
-                }
-            });
-        } catch (error) {
-            console.error("Error fetching account:", error);
-        }
-    };
-
-    const updateAccount = (accountId: string, updatedData: Partial<Account>) => {
-        setAccounts((prev) => prev.map((a) => (a.id === accountId ? { ...a, ...updatedData } : a)));
-    };
 
     const refetchRoles = async () => {
         try {
@@ -304,8 +226,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
             try {
                 if (orgId && user) {
                     await fetchOrganization(orgId);
-                    await refetchProducts();
-                    await refetchAccounts();
                     await refetchRoles();
                 }
             } catch (error) {
@@ -365,14 +285,7 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 myPermissions,
                 organization,
                 refetch,
-                products,
-                updateProduct,
-                refetchProducts,
-                refetchProductId,
-                accounts,
-                updateAccount,
-                refetchAccountId,
-                refetchAccounts,
+
                 roles,
                 updateRole,
                 refetchRoleId,

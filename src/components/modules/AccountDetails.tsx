@@ -286,6 +286,7 @@ const AccountDetails = ({ account, isLoading, error, type = "BANK" }: AccountDet
                         {hasAllPermissions(["ACCOUNT_UPDATE"]) && (
                             <AddTransactionDialog
                                 account={localAccount}
+                                accounts={[]}
                                 onAddTransaction={handleAddTransaction}
                             />
                         )}

@@ -8,7 +8,6 @@ import { TableSkeleton } from "@/components/modules/TableSkeleton";
 import { exportProductStockToExcel } from "@/utils/reportExports";
 import { Download } from "lucide-react";
 import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
-// import CreateProduct from "@/components/forms/CreateProduct";
 
 const OrgProducts = () => {
     useRequirePermissions("PRODUCT_READ");
@@ -116,7 +115,6 @@ const OrgProducts = () => {
                         </Link>
                     )}
                 </div>
-                {/* <CreateProduct orgId={orgId} afterCreate={handleProductCreated} /> */}
             </div>
             {loading ? (
                 <TableSkeleton rows={5} columns={4} />

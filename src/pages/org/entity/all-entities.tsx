@@ -1,12 +1,13 @@
 import { api } from "@/utils/api";
 import { useState, useEffect } from "react";
 import { Entity } from "@/data/types";
-import { useParams } from "react-router-dom";
-import { EntityList } from "@/components/lists/EntityList";
+import { useParams, Link } from "react-router-dom";
+import { TableComponent } from "@/components/modules/Table";
+import { ColumnDef } from "@tanstack/react-table";
+import { RemoveModal } from "@/components/modals/RemoveModal";
 import AddEntity from "@/components/modals/AddEntity";
 import { TableSkeleton } from "@/components/modules/TableSkeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { useOrg } from "@/providers/org-provider";
 import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 
 const EntityInfo = () => {
@@ -49,6 +50,71 @@ const EntityInfo = () => {
         setEntities(entities.map((e) => (e.id === id ? { ...e, ...entity } : e)));
     };
 
+    const renderEntityTable = (filteredEntities: Entity[]) => {
+        const columns: ColumnDef<Entity>[] = [
+            {
+                accessorKey: "name",
+                header: "Name",
+                cell: (props) => (
+                    <Link
+                        to={`/org/${props.row.original.organizationId}/entity/${props.row.original.id}`}
+                        className="text-blue-600 hover:underline"
+                    >
+                        {props.row.original.name}
+                    </Link>
+                ),
+            },
+            {
+                accessorKey: "phone",
+                header: "Phone",
+            },
+            {
+                accessorKey: "email",
+                header: "Email",
+            },
+            {
+                accessorKey: "description",
+                header: "Description",
+            },
+            {
+                accessorKey: "id",
+                header: "Actions",
+                cell: (props) => (
+                    <div className="flex space-x-2">
+                        {hasPermission("ENTITY_UPDATE") && (
+                            <>
+                                <RemoveModal
+                                    title="Remove Entity"
+                                    description="Are you sure you want to remove this entity?"
+                                    onRemove={() => handleDelete(props.row.original.id)}
+                                />
+                                <AddEntity
+                                    addEntity={(entity: Partial<Entity>) =>
+                                        updateEntity(props.row.original.id, entity)
+                                    }
+                                    entity={props.row.original}
+                                    text="Edit"
+                                />
+                            </>
+                        )}
+                    </div>
+                ),
+                enableSorting: false,
+            },
+        ];
+
+        return (
+            <TableComponent
+                columns={columns}
+                data={filteredEntities}
+                allowExport={false}
+                showFooter
+                allowPagination
+                allowSearch
+            />
+        );
+    };
+
     return (
         <div className="w-full mx-auto">
             <div className="flex flex-row items-center justify-between">
@@ -68,36 +134,15 @@ const EntityInfo = () => {
                         </TabsList>
 
                         <TabsContent value="all" className="mt-6">
-                            <EntityList
-                                entities={entities}
-                                loading={false}
-                                error={null}
-                                onDelete={handleDelete}
-                                onEdit={updateEntity}
-                                canManage={hasPermission("ENTITY_UPDATE")}
-                            />
+                            {renderEntityTable(entities)}
                         </TabsContent>
 
                         <TabsContent value="merchant" className="mt-6">
-                            <EntityList
-                                entities={entities.filter((entity) => entity.isMerchant)}
-                                loading={false}
-                                error={null}
-                                onDelete={handleDelete}
-                                onEdit={updateEntity}
-                                canManage={hasPermission("ENTITY_UPDATE")}
-                            />
+                            {renderEntityTable(entities.filter((entity) => entity.isMerchant))}
                         </TabsContent>
 
                         <TabsContent value="vendor" className="mt-6">
-                            <EntityList
-                                entities={entities.filter((entity) => entity.isVendor)}
-                                loading={false}
-                                error={null}
-                                onDelete={handleDelete}
-                                onEdit={updateEntity}
-                                canManage={hasPermission("ENTITY_UPDATE")}
-                            />
+                            {renderEntityTable(entities.filter((entity) => entity.isVendor))}
                         </TabsContent>
                     </Tabs>
                 )}
