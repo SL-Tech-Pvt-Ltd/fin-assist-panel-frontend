@@ -7,22 +7,22 @@ import Logout from "./pages/auth/logout";
 import SettingLayout from "./layouts/SettingLayout";
 import ProfilePage from "./pages/settings/Profile";
 import UserOrgs from "./pages/settings/Orgs";
-import OrgUsers from "./pages/admin/basic/OrgUsers";
-import OrgRoles from "./pages/admin/basic/OrgRoles";
+import OrgUsers from "./pages/admin/org/users";
+import OrgRoles from "./pages/admin/org/roles";
 import { MainLayout } from "./layouts/MainLayout";
-import OrgInfoPage from "./pages/admin/basic/OrgInfo";
-import OrgCategories from "./pages/admin/products/Categories";
-import OrgProducts from "./pages/admin/products/Products";
-import EntityInfo from "./pages/admin/basic/Entity";
-import ViewAccountPage from "./pages/admin/accounts/ViewAccount";
-import SingleOrderPage from "./pages/admin/order/SingleOrderPage";
-import DashboardPage from "./pages/admin/basic/Dashboard";
+import OrgInfoPage from "./pages/admin/org/info";
+import OrgCategories from "./pages/admin/products/all-categories";
+import OrgProducts from "./pages/admin/products/all-products";
+import EntityInfo from "./pages/admin/entity/all-entities";
+import ViewAccountPage from "./pages/admin/accounts/all";
+import SingleOrderPage from "./pages/admin/order/single-order";
+import DashboardPage from "./pages/admin/basic/dashboard";
 import AllTransactionPage from "./pages/admin/transactions/all";
 import BuyTransactionPage from "./pages/admin/transactions/buy";
 import SellTransactionPage from "./pages/admin/transactions/sell";
 import BankAccounts from "./pages/admin/accounts/bank";
-import BuyOrderPage from "./pages/admin/order/buy";
-import SellOrderPage from "./pages/admin/order/sell";
+import BuyOrderPage from "./pages/admin/order/create-buy-order";
+import SellOrderPage from "./pages/admin/order/create-sell-order";
 import ChequeAccounts from "./pages/admin/accounts/cheques";
 import BankODAccounts from "./pages/admin/accounts/bank-od";
 import UserInvitePages from "./pages/settings/invites";
@@ -33,18 +33,17 @@ import SingleProductPage from "./pages/admin/products/single-product-page";
 import ProductSuccessPage from "./pages/admin/products/product-success";
 import ForgotPassword from "./pages/auth/Forgot-Password";
 import ResetPassword from "./pages/auth/ResetPassword";
-import SingleEntityPage from "./pages/admin/basic/SingleEntityPage";
+import SingleEntityPage from "./pages/admin/entity/single-entity";
 import NotVerifiedPage from "./pages/auth/NotVerified";
 import VerificationPage from "./pages/auth/VerifyEmail";
-import VATPage from "./pages/admin/transactions/VAT";
-import ProfitLossPage from "./pages/admin/order/profit-loss";
-import ExpensesPage from "./pages/admin/expenses/ExpensesPage";
-import IncomePage from "./pages/admin/income/IncomePage";
-import RecurringTransactionsPage from "./pages/admin/recurring/RecurringTransactionsPage";
+import VATPage from "./pages/admin/transactions/vat";
+import ExpensesPage from "./pages/admin/expenses/expense";
+import IncomePage from "./pages/admin/expenses/income";
+import RecurringTransactionsPage from "./pages/admin/expenses/recurring";
 import FinAssistHomepage from "./pages/HomePage";
 import ReportPage from "./pages/admin/basic/report";
-import POSRegistersPage from "./pages/admin/pos/POSRegistersPage";
-import SinglePOSRegisterPage from "./pages/admin/pos/SinglePOSRegisterPage";
+import POSRegistersPage from "./pages/admin/pos/all-pos";
+import SinglePOSRegisterPage from "./pages/admin/pos/single-pos";
 
 export const routes: RouteObject[] = [
     {
@@ -221,10 +220,6 @@ export const routes: RouteObject[] = [
                             {
                                 element: <VATPage />,
                                 path: "vat",
-                            },
-                            {
-                                path: "profit-loss",
-                                element: <ProfitLossPage />,
                             },
                         ],
                     },
