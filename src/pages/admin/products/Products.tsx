@@ -7,9 +7,12 @@ import { ProductList } from "@/components/lists/ProductList";
 import { TableSkeleton } from "@/components/modules/TableSkeleton";
 import { exportProductStockToExcel } from "@/utils/reportExports";
 import { Download } from "lucide-react";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 // import CreateProduct from "@/components/forms/CreateProduct";
 
 const OrgProducts = () => {
+    useRequirePermissions("PRODUCT_READ");
+    const { hasPermission } = usePermissions();
     const { orgId } = useParams<{ orgId: string }>() as { orgId: string };
     const [products, setProducts] = useState<Product[]>([]);
     const [organization, setOrganization] = useState<Organization | null>(null);
@@ -104,12 +107,14 @@ const OrgProducts = () => {
                             </span>
                         )}
                     </button>
-                    <Link
-                        to={`/org/${orgId}/products/create`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
-                    >
-                        <span className="font-medium">Create Product</span>
-                    </Link>
+                    {hasPermission("PRODUCT_CREATE") && (
+                        <Link
+                            to={`/org/${orgId}/products/create`}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
+                        >
+                            <span className="font-medium">Create Product</span>
+                        </Link>
+                    )}
                 </div>
                 {/* <CreateProduct orgId={orgId} afterCreate={handleProductCreated} /> */}
             </div>

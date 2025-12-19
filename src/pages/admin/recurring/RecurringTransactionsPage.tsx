@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Calendar, Play, Pause, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,9 +25,13 @@ import {
 } from "@/data/expense-income-types";
 
 export default function RecurringTransactionsPage() {
+    // useRequirePermissions(["ACCOUNT_READ", "ACCOUNT_ADMIN"]);
+    // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [loading, setLoading] = useState(true);
-    const [recurringTransactions, setRecurringTransactions] = useState<ExpenseIncomeTransaction[]>([]);
+    const [recurringTransactions, setRecurringTransactions] = useState<ExpenseIncomeTransaction[]>(
+        []
+    );
     const [showAddDialog, setShowAddDialog] = useState(false);
 
     // Load recurring transactions
@@ -88,7 +93,7 @@ export default function RecurringTransactionsPage() {
             });
             toast({
                 title: "Success",
-                description: `Recurring transaction ${!isActive ? 'activated' : 'paused'}`,
+                description: `Recurring transaction ${!isActive ? "activated" : "paused"}`,
             });
             loadRecurringTransactions();
         } catch (error) {
@@ -131,11 +136,11 @@ export default function RecurringTransactionsPage() {
     };
 
     const formatCategory = (category: TransactionCategory) => {
-        return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
     const formatRecurrenceType = (type: RecurrenceType) => {
-        return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
     const getNextExecutionDate = (transaction: ExpenseIncomeTransaction) => {
@@ -199,7 +204,11 @@ export default function RecurringTransactionsPage() {
             header: "Amount",
             accessorKey: "amount",
             cell: ({ row }: any) => (
-                <span className={`font-medium ${row.original.isExpense ? 'text-red-600' : 'text-green-600'}`}>
+                <span
+                    className={`font-medium ${
+                        row.original.isExpense ? "text-red-600" : "text-green-600"
+                    }`}
+                >
                     {formatCurrency(row.original.amount)}
                 </span>
             ),
@@ -224,9 +233,7 @@ export default function RecurringTransactionsPage() {
             header: "Next Execution",
             accessorKey: "nextExecution",
             cell: ({ row }: any) => (
-                <div className="text-sm">
-                    {getNextExecutionDate(row.original)}
-                </div>
+                <div className="text-sm">{getNextExecutionDate(row.original)}</div>
             ),
         },
         {
@@ -246,7 +253,9 @@ export default function RecurringTransactionsPage() {
                     <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toggleRecurringStatus(row.original.id, row.original.isRecurring)}
+                        onClick={() =>
+                            toggleRecurringStatus(row.original.id, row.original.isRecurring)
+                        }
                     >
                         {row.original.isRecurring ? (
                             <Pause className="h-4 w-4" />
@@ -266,15 +275,17 @@ export default function RecurringTransactionsPage() {
         },
     ];
 
-    const activeRecurring = recurringTransactions.filter(t => t.isRecurring);
-    const pausedRecurring = recurringTransactions.filter(t => !t.isRecurring);
+    const activeRecurring = recurringTransactions.filter((t) => t.isRecurring);
+    const pausedRecurring = recurringTransactions.filter((t) => !t.isRecurring);
 
     return (
         <div className="container mx-auto px-6 py-8 max-w-7xl">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Recurring Transactions</h1>
-                    <p className="text-gray-600">Manage your automatic income and expense transactions</p>
+                    <p className="text-gray-600">
+                        Manage your automatic income and expense transactions
+                    </p>
                 </div>
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                     <DialogTrigger asChild>
@@ -298,8 +309,6 @@ export default function RecurringTransactionsPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -307,9 +316,7 @@ export default function RecurringTransactionsPage() {
                         <RefreshCw className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">
-                            {recurringTransactions.length}
-                        </div>
+                        <div className="text-2xl font-bold">{recurringTransactions.length}</div>
                     </CardContent>
                 </Card>
 
@@ -344,10 +351,16 @@ export default function RecurringTransactionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {activeRecurring.filter(t => {
-                                const nextDate = getNextExecutionDate(t);
-                                return nextDate !== "Not scheduled" && new Date(nextDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                            }).length}
+                            {
+                                activeRecurring.filter((t) => {
+                                    const nextDate = getNextExecutionDate(t);
+                                    return (
+                                        nextDate !== "Not scheduled" &&
+                                        new Date(nextDate) <=
+                                            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                                    );
+                                }).length
+                            }
                         </div>
                         <p className="text-xs text-gray-500">Within 7 days</p>
                     </CardContent>

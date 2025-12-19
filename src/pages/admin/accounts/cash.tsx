@@ -4,8 +4,11 @@ import { api } from "@/utils/api";
 import { Account } from "@/data/types";
 import AccountDetails from "@/components/modules/AccountDetails";
 import CreateAccountForm from "@/components/forms/CreateAccountForm";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 
 export default function CASHACCOUNTS() {
+    useRequirePermissions("ACCOUNT_READ");
+    const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,10 +55,8 @@ export default function CASHACCOUNTS() {
                     <h2 className="text-2xl font-bold text-gray-800">Cash Accounts</h2>
                     <p className="text-sm text-gray-500">View and manage your Cash accounts</p>
                 </div>
-                {accounts.length === 0 ? (
+                {hasPermission("ACCOUNT_CREATE") && accounts.length === 0 && (
                     <CreateAccountForm type="CASH_COUNTER" onSubmit={onSubmit} disableType={true} />
-                ) : (
-                    <div></div>
                 )}
             </div>
 

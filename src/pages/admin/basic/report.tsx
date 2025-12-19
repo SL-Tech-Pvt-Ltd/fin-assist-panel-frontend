@@ -3,6 +3,7 @@ import { api } from "@/utils/api";
 import { useState, useEffect } from "react";
 import { exportToExcel, exportToPDF } from "@/utils/reportExports";
 import { TableComponent } from "@/components/modules/Table";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 import "./report.css";
 import { Link } from "react-router-dom";
 import { ColumnDef } from "@tanstack/react-table";
@@ -142,6 +143,7 @@ const convertAdDateToBsString = (adDateStr: string): string => {
 };
 
 const ReportPage = () => {
+    useRequirePermissions(["ORDER_READ", "ORDER_ADMIN"]);
     const { orgId } = useOrg();
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(false);

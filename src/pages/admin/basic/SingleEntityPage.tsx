@@ -4,8 +4,10 @@ import { Account, Entity } from "@/data/types";
 import { api } from "@/utils/api";
 import EntityPage from "@/components/modules/SingleEntityDetails";
 import { useOrg } from "@/providers/org-provider";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 
 const SingleEntityPage = () => {
+    useRequirePermissions("ENTITY_READ");
     const { entityId } = useParams<{ entityId: string }>();
     const { orgId } = useOrg();
     const [entity, setEntity] = useState<Entity | null>(null);

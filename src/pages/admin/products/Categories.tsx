@@ -5,8 +5,11 @@ import { Category } from "@/data/types";
 import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 
 const OrgCategories = () => {
+    useRequirePermissions("PRODUCT_READ");
+    const { hasPermission } = usePermissions();
     const { orgId } = useParams<{ orgId: string }>() as { orgId: string };
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(false);
@@ -55,22 +58,16 @@ const OrgCategories = () => {
         <div className="">
             <div className="flex justify-between items-center mb-6">
                 <div className="">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        Categories
-                    </h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Categories</h2>
                     <p className="text-gray-600">Manage your categories here</p>
                 </div>
-                <AddCategory onAddCategory={addCategory} />
+                {hasPermission("PRODUCT_CREATE") && <AddCategory onAddCategory={addCategory} />}
             </div>
             {loading ? (
                 <TableSkeleton rows={5} columns={4} />
             ) : (
                 <div className="mb-4">
-                    <CategoryList
-                        categories={categories}
-                        loading={loading}
-                        onRetry={handleRetry}
-                    />
+                    <CategoryList categories={categories} loading={loading} onRetry={handleRetry} />
                 </div>
             )}
         </div>

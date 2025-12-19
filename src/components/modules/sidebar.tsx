@@ -34,17 +34,19 @@ interface OrgData {
 interface SidebarItem {
     name: string;
     path?: string;
+    hidden?: boolean;
     icon: string;
     subItems?: {
         name: string;
         icon: string;
         path: string;
+        hidden?: boolean;
     }[];
 }
 
 export default function Sidebar() {
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
-    const { orgId } = useOrg(); // Assuming you have a context or provider for organization data
+    const { orgId, myPermissions, isOwner } = useOrg(); // Assuming you have a context or provider for organization data
     const { user } = useAuth();
     const bottomItems = [
         { name: "Profile", path: "/profile", icon: user?.avatar || ProfileIcon },
@@ -63,37 +65,44 @@ export default function Sidebar() {
         {
             name: "Buy Product",
             path: getPathname("orders/buy"),
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_CREATE"),
             icon: BuyIcon,
         },
         {
             name: "Sell Product",
             path: getPathname("orders/sell"),
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_CREATE"),
             icon: SellIcon,
         },
         {
             name: "POS",
             path: getPathname("pos"),
             icon: DashboardIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "POS_READ"),
         },
         {
             name: "Products",
             path: "/products",
             icon: ProductIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("products"),
                     icon: ProductIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
                 },
                 {
                     name: "Create",
                     path: getPathname("products/create"),
                     icon: ProductIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_CREATE"),
                 },
                 {
                     name: "Categories",
                     path: getPathname("categories"),
                     icon: CategoryIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
                 },
             ],
         },
@@ -101,6 +110,7 @@ export default function Sidebar() {
             name: "Entity/Party",
             path: getPathname("entity"),
             icon: EntityIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ENTITY_READ"),
         },
         {
             name: "Reports",
@@ -110,26 +120,31 @@ export default function Sidebar() {
         {
             name: "Transactions",
             icon: TransactionIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("transactions/all"),
                     icon: TransactionIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "Buy",
                     path: getPathname("transactions/buy"),
                     icon: TransactionIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "Sell",
                     path: getPathname("transactions/sell"),
                     icon: TransactionIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "VAT",
                     path: getPathname("transactions/vat"),
                     icon: TransactionIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
                 },
             ],
         },
@@ -162,31 +177,37 @@ export default function Sidebar() {
         {
             name: "Accounts",
             icon: AccountIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("accounts/view"),
                     icon: AllAccountIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Bank",
                     path: getPathname("accounts/bank"),
                     icon: BankAccountIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Bank-OD",
                     path: getPathname("accounts/bank-od"),
                     icon: BankAccountIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Cheque",
                     path: getPathname("accounts/cheques"),
                     icon: ChequeAccountIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Cash",
                     path: getPathname("accounts/cash_counter"),
                     icon: CashIcon,
+                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
                 },
             ],
         },
@@ -194,16 +215,19 @@ export default function Sidebar() {
             name: "Org Settings",
             path: getPathname("info"),
             icon: OrgIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_UPDATE"),
         },
         {
             name: "Team",
             path: getPathname("users"),
             icon: OrgIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_ADMIN"),
         },
         {
             name: "Roles",
             path: getPathname("roles"),
             icon: OrgIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_ADMIN"),
         },
     ];
 
@@ -240,6 +264,7 @@ export default function Sidebar() {
 
     const renderItem = (item: any) => {
         const isActive = openMenus[item.name];
+        if (item.hidden) return null;
         return (
             <div key={item.name}>
                 <div
@@ -266,22 +291,24 @@ export default function Sidebar() {
                 </div>
                 {item.subItems && isActive && (
                     <div className="pl-8 flex flex-col gap-2 mt-3">
-                        {item.subItems.map((sub: any) => (
-                            <NavLink
-                                key={sub.name}
-                                to={sub.path}
-                                className={cn(
-                                    "text-sm text-gray-600 px-2 dark:text-gray-400 border-r-4 border-transparent hover:text-black dark:hover:text-white hover:bg-gray-200 dark:bg-gray-700 rounded-md",
-                                    sub.path === window.location.pathname &&
-                                        "bg-gray-200 dark:bg-gray-800 text-black dark:text-white border-gray-500"
-                                )}
-                            >
-                                <div className="flex items-center gap-3 px-2 py-2">
-                                    <img src={sub.icon} alt={sub.name} className="w-4 h-4" />
-                                    {sub.name}
-                                </div>
-                            </NavLink>
-                        ))}
+                        {item.subItems
+                            .filter((sub: any) => !sub.hidden)
+                            .map((sub: any) => (
+                                <NavLink
+                                    key={sub.name}
+                                    to={sub.path}
+                                    className={cn(
+                                        "text-sm text-gray-600 px-2 dark:text-gray-400 border-r-4 border-transparent hover:text-black dark:hover:text-white hover:bg-gray-200 dark:bg-gray-700 rounded-md",
+                                        sub.path === window.location.pathname &&
+                                            "bg-gray-200 dark:bg-gray-800 text-black dark:text-white border-gray-500"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-3 px-2 py-2">
+                                        <img src={sub.icon} alt={sub.name} className="w-4 h-4" />
+                                        {sub.name}
+                                    </div>
+                                </NavLink>
+                            ))}
                     </div>
                 )}
             </div>

@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import type { Order, OrderItem, Transaction, Entity, Account } from "@/data/types";
 import { useOrg } from "@/providers/org-provider";
 import { api } from "@/utils/api";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { downloadInvoicePDF, printInvoicePDF } from "@/utils/pdfGenerator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,6 +34,8 @@ import RefundDialog from "@/components/modals/RefundDialog";
 import { useToast } from "@/hooks/use-toast";
 
 const SingleOrderPage = () => {
+    useRequirePermissions("ORDER_READ");
+    const { hasPermission } = usePermissions();
     const { orgId, organization } = useOrg();
     const { orderId } = useParams<{ orderId: string }>();
     const navigate = useNavigate();
@@ -244,7 +247,7 @@ const SingleOrderPage = () => {
                     <Button variant="outline" onClick={handlePrintPDF}>
                         <Printer className="mr-2 h-4 w-4" /> Print PDF
                     </Button>
-                    {order.paymentStatus !== "PAID" && (
+                    {hasPermission("ORDER_UPDATE") && order.paymentStatus !== "PAID" && (
                         <AddPaymentDialog
                             remainingAmount={
                                 order.totalAmount -
@@ -259,7 +262,7 @@ const SingleOrderPage = () => {
                         />
                     )}
                     {/* Refund button - only for SELL orders (customer returns) */}
-                    {order.type === "SELL" && (
+                    {hasPermission("ORDER_UPDATE") && order.type === "SELL" && (
                         <RefundDialog
                             order={order}
                             accounts={accounts}

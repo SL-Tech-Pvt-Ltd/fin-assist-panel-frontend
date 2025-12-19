@@ -3,8 +3,9 @@ import { useOrg } from "@/providers/org-provider";
 import { api } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import type { OrganizationRole, Permission } from "@/data/types";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 
-import { Loader2, Plus, RefreshCw, Shield, Edit, Users } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Shield, Edit } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,11 +60,57 @@ const groupPermissionsByCategory = () => {
     return groups;
 };
 
+// Define permission dependencies (higher permissions require lower ones)
+const getPermissionDependencies = (permission: Permission): Permission[] => {
+    const parts = permission.split("_");
+    const category = parts.slice(0, -1).join("_");
+    const level = parts[parts.length - 1];
+
+    const dependencies: Permission[] = [];
+
+    if (level === "CREATE") {
+        dependencies.push(`${category}_READ` as Permission);
+    } else if (level === "UPDATE") {
+        dependencies.push(`${category}_READ` as Permission);
+        dependencies.push(`${category}_CREATE` as Permission);
+    } else if (level === "ADMIN") {
+        dependencies.push(`${category}_READ` as Permission);
+        dependencies.push(`${category}_CREATE` as Permission);
+        dependencies.push(`${category}_UPDATE` as Permission);
+    }
+
+    return dependencies;
+};
+
+// Get all permissions that depend on this permission
+const getPermissionDependents = (permission: Permission): Permission[] => {
+    const parts = permission.split("_");
+    const category = parts.slice(0, -1).join("_");
+    const level = parts[parts.length - 1];
+
+    const dependents: Permission[] = [];
+
+    if (level === "READ") {
+        dependents.push(`${category}_CREATE` as Permission);
+        dependents.push(`${category}_UPDATE` as Permission);
+        dependents.push(`${category}_ADMIN` as Permission);
+    } else if (level === "CREATE") {
+        dependents.push(`${category}_UPDATE` as Permission);
+        dependents.push(`${category}_ADMIN` as Permission);
+    } else if (level === "UPDATE") {
+        dependents.push(`${category}_ADMIN` as Permission);
+    }
+
+    return dependents.filter((dep) => AVAILABLE_PERMISSIONS.some((p) => p.value === dep));
+};
+
 interface RoleWithMembers extends OrganizationRole {
     memberCount?: number;
 }
 
 export default function OrgRoles() {
+    useRequirePermissions(["ORGANIZATION_READ", "ORGANIZATION_ADMIN"]);
+    const { hasPermission } = usePermissions();
     const { orgId, refetchRoles } = useOrg();
     const [rolesWithMembers, setRolesWithMembers] = useState<RoleWithMembers[]>([]);
 
@@ -124,12 +171,33 @@ export default function OrgRoles() {
     };
 
     const handlePermissionToggle = (permission: Permission) => {
-        setFormData((prev) => ({
-            ...prev,
-            permissions: prev.permissions.includes(permission)
-                ? prev.permissions.filter((p) => p !== permission)
-                : [...prev.permissions, permission],
-        }));
+        setFormData((prev) => {
+            const isCurrentlySelected = prev.permissions.includes(permission);
+            let newPermissions = [...prev.permissions];
+
+            if (isCurrentlySelected) {
+                // Deselecting: remove this permission and all that depend on it
+                const dependents = getPermissionDependents(permission);
+                newPermissions = newPermissions.filter(
+                    (p) => p !== permission && !dependents.includes(p)
+                );
+            } else {
+                // Selecting: add this permission and all its dependencies
+                const dependencies = getPermissionDependencies(permission);
+                const toAdd = [permission, ...dependencies];
+
+                toAdd.forEach((perm) => {
+                    if (!newPermissions.includes(perm)) {
+                        newPermissions.push(perm);
+                    }
+                });
+            }
+
+            return {
+                ...prev,
+                permissions: newPermissions,
+            };
+        });
     };
 
     const handleSubmit = async () => {
@@ -186,10 +254,12 @@ export default function OrgRoles() {
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
-                    <Button size="sm" onClick={() => handleOpenDialog()}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Role
-                    </Button>
+                    {hasPermission("ORGANIZATION_ADMIN") && (
+                        <Button size="sm" onClick={() => handleOpenDialog()}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Role
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -202,13 +272,15 @@ export default function OrgRoles() {
                                     <Shield className="h-5 w-5 text-primary" />
                                     <CardTitle className="text-lg">{role.title}</CardTitle>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleOpenDialog(role)}
-                                >
-                                    <Edit className="h-4 w-4" />
-                                </Button>
+                                {hasPermission("ORGANIZATION_ADMIN") && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleOpenDialog(role)}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                             {role.description && (
                                 <CardDescription className="line-clamp-2">
@@ -218,10 +290,6 @@ export default function OrgRoles() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Users className="h-4 w-4" />
-                                    <span>{role.memberCount || 0} members</span>
-                                </div>
                                 <div>
                                     <div className="text-sm font-medium mb-2">
                                         Permissions ({role.permissions.length})

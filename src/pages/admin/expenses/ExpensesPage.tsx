@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,6 +26,8 @@ import {
 } from "@/data/expense-income-types";
 
 export default function ExpensesPage() {
+    // useRequirePermissions(["ACCOUNT_READ", "ACCOUNT_ADMIN"]);
+    // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [loading, setLoading] = useState(true);
     const [expenses, setExpenses] = useState<ExpenseIncomeTransaction[]>([]);
@@ -68,7 +71,7 @@ export default function ExpensesPage() {
         try {
             const endDate = new Date();
             const startDate = new Date();
-            
+
             if (selectedPeriod === "month") {
                 startDate.setMonth(startDate.getMonth() - 1);
             } else if (selectedPeriod === "quarter") {
@@ -117,13 +120,14 @@ export default function ExpensesPage() {
     };
 
     const formatCategory = (category: TransactionCategory) => {
-        return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
-    const filteredExpenses = expenses.filter(expense =>
-        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        formatCategory(expense.category).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredExpenses = expenses.filter(
+        (expense) =>
+            expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            formatCategory(expense.category).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            expense.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const expenseColumns = [
@@ -186,7 +190,7 @@ export default function ExpensesPage() {
         {
             header: "Recurring",
             accessorKey: "isRecurring",
-            cell: ({ row }: any) => 
+            cell: ({ row }: any) =>
                 row.original.isRecurring ? (
                     <Badge variant="secondary">Recurring</Badge>
                 ) : (
@@ -212,9 +216,7 @@ export default function ExpensesPage() {
                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Add New Expense</DialogTitle>
-                            <DialogDescription>
-                                Create a new expense transaction
-                            </DialogDescription>
+                            <DialogDescription>Create a new expense transaction</DialogDescription>
                         </DialogHeader>
                         <ExpenseIncomeForm
                             isExpense={true}
@@ -224,8 +226,6 @@ export default function ExpensesPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-
-            {/* Summary Cards */}
             {summary && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <Card>
@@ -258,23 +258,29 @@ export default function ExpensesPage() {
                             <DollarSign className="h-4 w-4 text-blue-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${summary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div
+                                className={`text-2xl font-bold ${
+                                    summary.netAmount >= 0 ? "text-green-600" : "text-red-600"
+                                }`}
+                            >
                                 {formatCurrency(Math.abs(summary.netAmount))}
                             </div>
                             <p className="text-xs text-gray-500">
-                                {summary.netAmount >= 0 ? 'Profit' : 'Loss'}
+                                {summary.netAmount >= 0 ? "Profit" : "Loss"}
                             </p>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Expense Categories</CardTitle>
+                            <CardTitle className="text-sm font-medium">
+                                Expense Categories
+                            </CardTitle>
                             <Filter className="h-4 w-4 text-gray-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {summary.byCategory.filter(cat => cat.isExpense).length}
+                                {summary.byCategory.filter((cat) => cat.isExpense).length}
                             </div>
                             <p className="text-xs text-gray-500">Active categories</p>
                         </CardContent>

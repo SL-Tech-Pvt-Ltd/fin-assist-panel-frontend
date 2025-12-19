@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 import {
     Search,
     X,
@@ -66,6 +67,8 @@ const getVariantStock = (variant?: ProductVariant): number => {
 };
 
 export default function SinglePOSRegisterPage() {
+    useRequirePermissions("POS_READ");
+    // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const { registerId } = useParams<{ registerId: string }>();
 

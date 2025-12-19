@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import { Building, Mail, Globe, CreditCard, Clock, Camera, Upload } from "lucide-react";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import { RemoveModal } from "@/components/modals/RemoveModal";
 import { FaAddressBook } from "react-icons/fa";
 
 export default function OrgInfoPage() {
+    useRequirePermissions("ORGANIZATION_READ");
+    const { hasPermission } = usePermissions();
     const { orgId, refetch, organization } = useOrg();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -194,13 +197,17 @@ export default function OrgInfoPage() {
                             </div>
                         </div>
                         <div className="md:ml-auto flex items-center gap-4">
-                            <EditOrgModal orgData={organization} onSubmit={handleEditSubmit} />
-                            <RemoveModal
-                                title="Delete Organization"
-                                description="Are you sure you want to delete this organization?"
-                                onRemove={handleDeleteOrganization}
-                                text="Delete"
-                            />
+                            {hasPermission("ORGANIZATION_UPDATE") && (
+                                <EditOrgModal orgData={organization} onSubmit={handleEditSubmit} />
+                            )}
+                            {hasPermission("ORGANIZATION_ADMIN") && (
+                                <RemoveModal
+                                    title="Delete Organization"
+                                    description="Are you sure you want to delete this organization?"
+                                    onRemove={handleDeleteOrganization}
+                                    text="Delete"
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

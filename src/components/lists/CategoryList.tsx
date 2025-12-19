@@ -5,12 +5,7 @@ import { RemoveModal } from "../modals/RemoveModal";
 import { api } from "@/utils/api";
 import { useOrg } from "@/providers/org-provider";
 import { useState } from "react";
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
     Dialog,
     DialogContent,
@@ -30,6 +25,7 @@ interface CategoryListProps {
     loading: boolean;
     error?: Error | null;
     onRetry: () => void;
+    canManage?: boolean;
 }
 
 const CategoryList: React.FC<CategoryListProps> = ({
@@ -37,11 +33,10 @@ const CategoryList: React.FC<CategoryListProps> = ({
     loading,
     error,
     onRetry,
+    canManage = false,
 }) => {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-        null
-    );
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [isUpdateRateDialogOpen, setIsUpdateRateDialogOpen] = useState(false);
     const [updateRateCategory, setUpdateRateCategory] = useState<Category | null>(null);
     const [percentage, setPercentage] = useState<string>("");
@@ -150,50 +145,45 @@ const CategoryList: React.FC<CategoryListProps> = ({
             accessorKey: "createdAt",
             header: "Created At",
             cell: (props) =>
-                new Date(props.row.original.createdAt).toLocaleDateString(
-                    undefined,
-                    {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                    }
-                ),
+                new Date(props.row.original.createdAt).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                }),
         },
         {
             accessorKey: "updatedAt",
             header: "Updated At",
             cell: (props) =>
-                new Date(props.row.original.updatedAt).toLocaleDateString(
-                    undefined,
-                    {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                    }
-                ),
+                new Date(props.row.original.updatedAt).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                }),
             enableSorting: false,
         },
         {
             accessorKey: "id",
             header: "Actions",
-            cell: (props) => (
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUpdateRateClick(props.row.original)}
-                        className="h-8 px-2"
-                    >
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        Update Rates
-                    </Button>
-                    <RemoveModal
-                        title="Remove Category"
-                        onRemove={() => handleDelete(props.row.original.id)}
-                        description="Are you sure you want to remove this category?"
-                    />
-                </div>
-            ),
+            cell: (props) =>
+                canManage && (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUpdateRateClick(props.row.original)}
+                            className="h-8 px-2"
+                        >
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                            Update Rates
+                        </Button>
+                        <RemoveModal
+                            title="Remove Category"
+                            onRemove={() => handleDelete(props.row.original.id)}
+                            description="Are you sure you want to remove this category?"
+                        />
+                    </div>
+                ),
             enableSorting: false,
         },
     ];
@@ -209,10 +199,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
             />
 
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetContent
-                    side="right"
-                    className="w-[800px] sm:max-w-[800px]"
-                >
+                <SheetContent side="right" className="w-[800px] sm:max-w-[800px]">
                     <SheetHeader>
                         <SheetTitle className="flex items-center gap-2">
                             <Package className="w-5 h-5" />
@@ -223,12 +210,9 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     <div className="mt-6">
                         {!selectedCategory ? (
                             <div className="text-center py-8">
-                                <p className="text-gray-500">
-                                    No category selected
-                                </p>
+                                <p className="text-gray-500">No category selected</p>
                             </div>
-                        ) : selectedCategory.products &&
-                          selectedCategory.products.length > 0 ? (
+                        ) : selectedCategory.products && selectedCategory.products.length > 0 ? (
                             <div className="h-[calc(100vh-180px)] overflow-auto">
                                 <ProductList
                                     products={selectedCategory.products}
@@ -260,7 +244,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                             Update Selling Rates
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label>Category</Label>
@@ -268,11 +252,9 @@ const CategoryList: React.FC<CategoryListProps> = ({
                                 {updateRateCategory?.name}
                             </div>
                         </div>
-                        
+
                         <div className="space-y-2">
-                            <Label htmlFor="percentage">
-                                Percentage Increase (%)
-                            </Label>
+                            <Label htmlFor="percentage">Percentage Increase (%)</Label>
                             <Input
                                 id="percentage"
                                 type="number"
@@ -283,20 +265,21 @@ const CategoryList: React.FC<CategoryListProps> = ({
                                 step="0.01"
                             />
                             <p className="text-sm text-gray-600">
-                                This will update the selling price of all products in this category 
-                                based on their latest purchase price from stock. 
+                                This will update the selling price of all products in this category
+                                based on their latest purchase price from stock.
                                 {percentage && !isNaN(parseFloat(percentage)) && (
                                     <span className="font-medium">
-                                        {parseFloat(percentage) > 0 
-                                            ? `Prices will increase by ${percentage}%` 
-                                            : `Prices will decrease by ${Math.abs(parseFloat(percentage))}%`
-                                        }
+                                        {parseFloat(percentage) > 0
+                                            ? `Prices will increase by ${percentage}%`
+                                            : `Prices will decrease by ${Math.abs(
+                                                  parseFloat(percentage)
+                                              )}%`}
                                     </span>
                                 )}
                             </p>
                         </div>
                     </div>
-                    
+
                     <DialogFooter>
                         <Button
                             variant="outline"
@@ -311,9 +294,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                             onClick={handleUpdateSellingRates}
                             disabled={isUpdatingRates || !percentage}
                         >
-                            {isUpdatingRates && (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            )}
+                            {isUpdatingRates && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             Update Rates
                         </Button>
                     </DialogFooter>

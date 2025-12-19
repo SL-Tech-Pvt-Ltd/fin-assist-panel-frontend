@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Eye, Edit, Lock, MoreHorizontal } from "lucide-react";
+// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,9 @@ import { toast } from "@/hooks/use-toast";
 import { POSRegister, CreatePOSRegisterData, ClosePOSRegisterData } from "@/data/pos-types";
 
 export default function POSRegistersPage() {
-    const { orgId } = useOrg();
+    // useRequirePermissions("POS_READ");
+    // const { hasPermission } = usePermissions();
+    const { orgId, myPermissions, isOwner } = useOrg();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [registers, setRegisters] = useState<POSRegister[]>([]);
@@ -190,10 +193,12 @@ export default function POSRegistersPage() {
                         {openCount} open · {registers.length - openCount} closed
                     </p>
                 </div>
-                <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Register
-                </Button>
+                {isOwner || myPermissions.includes("POS_CREATE") ? (
+                    <Button onClick={() => setShowCreateDialog(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Register
+                    </Button>
+                ) : null}
             </div>
 
             {/* Filters */}
@@ -261,7 +266,11 @@ export default function POSRegistersPage() {
                                 <TableRow
                                     key={register.id}
                                     className="cursor-pointer hover:bg-muted/50"
-                                    onClick={() => navigate(`/org/${orgId}/pos/${register.id}`)}
+                                    onClick={() => {
+                                        if (isOwner || myPermissions.includes("POS_UPDATE")) {
+                                            navigate(`/org/${orgId}/pos/${register.id}`);
+                                        }
+                                    }}
                                 >
                                     <TableCell>
                                         <div className="font-medium">{register.title}</div>
@@ -296,6 +305,12 @@ export default function POSRegistersPage() {
                                             <DropdownMenuTrigger
                                                 asChild
                                                 onClick={(e) => e.stopPropagation()}
+                                                disabled={
+                                                    !(
+                                                        isOwner ||
+                                                        myPermissions.includes("POS_UPDATE")
+                                                    )
+                                                }
                                             >
                                                 <Button
                                                     variant="ghost"

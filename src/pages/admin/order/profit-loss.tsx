@@ -2,6 +2,7 @@ import { useOrg } from "@/providers/org-provider";
 import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 import {
     TrendingUp,
     DollarSign,
@@ -39,6 +40,7 @@ interface ProfitLossData {
 }
 
 const ProfitLossPage = () => {
+    useRequirePermissions(["ORDER_READ", "ORDER_ADMIN"]);
     const { orgId } = useOrg();
     const [data, setData] = useState<ProfitLossData | null>(null);
     const [loading, setLoading] = useState(true);

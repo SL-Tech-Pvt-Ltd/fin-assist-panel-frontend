@@ -1,7 +1,8 @@
-import { Account, Entity, Organization, Product, OrganizationRole } from "@/data/types";
+import { Account, Entity, Organization, Product, OrganizationRole, Permission } from "@/data/types";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/utils/api";
+import { useAuth } from "./auth-provider";
 
 interface OrderProduct {
     productId: string;
@@ -39,6 +40,8 @@ interface OrgContextData {
     orgId: string;
     status: "idle" | "loading" | "error" | "success";
     organization: Organization | null;
+    isOwner: boolean;
+    myPermissions: Permission[];
     refetch: () => void;
 
     products: Product[];
@@ -68,6 +71,8 @@ interface OrgContextData {
 const OrgContext = createContext<OrgContextData>({
     orgId: "",
     organization: null,
+    isOwner: false,
+    myPermissions: [],
     status: "idle",
     refetch: () => {},
     products: [],
@@ -152,6 +157,33 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
     const [roles, setRoles] = useState<OrganizationRole[]>([]);
     const [buyCart, setBuyCart] = useState<Cart>(() => createInitialState("buy", orgId, null));
     const [sellCart, setSellCart] = useState<Cart>(() => createInitialState("sell", orgId, null));
+    const [isOwner, setIsOwner] = useState<boolean>(false);
+
+    const { user } = useAuth();
+
+    const [myPermissions, setMyPermissions] = useState<Permission[]>([]);
+
+    useEffect(() => {
+        if (user && organization && roles && roles.length > 0) {
+            if (organization.ownerId === user.id) {
+                setIsOwner(true);
+                setMyPermissions([]); // Clear permissions when user is owner
+                return;
+            }
+            setIsOwner(false); // User is not owner
+            const myAccess = user.roleAccess?.find((ra) => ra.organizationId === organization.id);
+            if (myAccess) {
+                const myRole = roles.find((r) => r.id === myAccess.organizationRoleId);
+                if (myRole) {
+                    setMyPermissions(myRole.permissions);
+                } else {
+                    setMyPermissions([]);
+                }
+            } else {
+                setMyPermissions([]);
+            }
+        }
+    }, [user, organization, roles]);
 
     // Persist buyCart to localStorage
     useEffect(() => {
@@ -268,15 +300,23 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (orgId) {
-                await fetchOrganization(orgId);
-                await refetchProducts();
-                await refetchAccounts();
-                await refetchRoles();
+            setStatus("loading");
+            try {
+                if (orgId && user) {
+                    await fetchOrganization(orgId);
+                    await refetchProducts();
+                    await refetchAccounts();
+                    await refetchRoles();
+                }
+            } catch (error) {
+                setStatus("error");
+                console.error("Error fetching organization data:", error);
+            } finally {
+                setStatus("success");
             }
         };
         fetchData();
-    }, [orgId]);
+    }, [orgId, user]);
 
     const refetch = async () => {
         if (orgId) {
@@ -321,6 +361,8 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
             value={{
                 orgId,
                 status,
+                isOwner,
+                myPermissions,
                 organization,
                 refetch,
                 products,
@@ -343,15 +385,16 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 clearSellCart,
             }}
         >
-            {children}
             {status === "loading" ? (
                 <div className="flex items-center justify-center h-screen w-screen bg-gray-100">
-                    <div className="flex items-center justify-center h-16 w-16 border-4 border-gray-200 rounded-full animate-spin"></div>
+                    <div className="flex items-center justify-center h-16 w-16 border-4 border-t-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
                 </div>
             ) : status === "error" ? (
                 <div className="flex items-center justify-center h-screen w-screen bg-gray-100">
                     <p className="text-red-500">Error fetching organization data</p>
                 </div>
+            ) : status === "success" ? (
+                children
             ) : null}
         </OrgContext.Provider>
     );

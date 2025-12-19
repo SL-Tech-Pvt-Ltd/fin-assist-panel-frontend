@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { api } from "@/utils/api";
 import { useOrg } from "@/providers/org-provider";
 import { TableComponent } from "@/components/modules/Table";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ interface VATEntry {
 }
 
 export default function VATPage() {
+    useRequirePermissions(["ORDER_READ", "ORDER_ADMIN"]);
     const { orgId } = useOrg();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,20 +47,13 @@ export default function VATPage() {
             if (order.charges) {
                 order.charges.forEach((charge) => {
                     // Check for VAT (case insensitive) and non-zero amount
-                    if (
-                        charge.label.toLowerCase().includes("vat") &&
-                        charge.amount !== 0
-                    ) {
+                    if (charge.label.toLowerCase().includes("vat") && charge.amount !== 0) {
                         // For professional ledger:
                         // BUY orders = VAT Buy (Debit) - VAT we paid on purchases
                         // SELL orders = VAT Sell (Credit) - VAT we collected on sales
                         const isDebit = order.type === "BUY";
-                        const debitAmount = isDebit
-                            ? Math.abs(charge.amount)
-                            : 0;
-                        const creditAmount = !isDebit
-                            ? Math.abs(charge.amount)
-                            : 0;
+                        const debitAmount = isDebit ? Math.abs(charge.amount) : 0;
+                        const creditAmount = !isDebit ? Math.abs(charge.amount) : 0;
 
                         entries.push({
                             id: `${order.id}-${charge.id}`,
@@ -74,9 +69,7 @@ export default function VATPage() {
                             debitAmount,
                             creditAmount,
                             description: `${charge.label} - ${
-                                order.type === "BUY"
-                                    ? "Purchase from"
-                                    : "Sale to"
+                                order.type === "BUY" ? "Purchase from" : "Sale to"
                             } ${order.entity?.name || "Unknown"}`,
                         });
                     }
@@ -85,9 +78,7 @@ export default function VATPage() {
         });
 
         return entries.sort(
-            (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
     }, [orders]);
 
@@ -105,14 +96,8 @@ export default function VATPage() {
 
     // Calculate statistics
     const stats = useMemo(() => {
-        const totalDebits = vatEntries.reduce(
-            (sum, entry) => sum + entry.debitAmount,
-            0
-        );
-        const totalCredits = vatEntries.reduce(
-            (sum, entry) => sum + entry.creditAmount,
-            0
-        );
+        const totalDebits = vatEntries.reduce((sum, entry) => sum + entry.debitAmount, 0);
+        const totalCredits = vatEntries.reduce((sum, entry) => sum + entry.creditAmount, 0);
         const balance = totalCredits - totalDebits; // Net VAT position
 
         const buyVat = vatEntries
@@ -156,9 +141,7 @@ export default function VATPage() {
             accessorKey: "orderNumber",
             header: "Voucher No.",
             cell: ({ row }) => (
-                <div className="font-mono text-sm font-medium">
-                    {row.getValue("orderNumber")}
-                </div>
+                <div className="font-mono text-sm font-medium">{row.getValue("orderNumber")}</div>
             ),
             enableSorting: false,
         },
@@ -167,12 +150,9 @@ export default function VATPage() {
             header: "Particulars",
             cell: ({ row }) => (
                 <div className="max-w-xs">
-                    <div className="text-sm font-medium">
-                        {row.getValue("description")}
-                    </div>
+                    <div className="text-sm font-medium">{row.getValue("description")}</div>
                     <div className="text-xs text-gray-500 mt-1">
-                        Base: ₹
-                        {parseFloat(row.getValue("baseAmount")).toFixed(2)}
+                        Base: ₹{parseFloat(row.getValue("baseAmount")).toFixed(2)}
                     </div>
                 </div>
             ),
@@ -193,11 +173,7 @@ export default function VATPage() {
                                 : "secondary"
                         }
                     >
-                        {type === "BUY"
-                            ? "Buy"
-                            : type === "SELL"
-                            ? "Sell"
-                            : type}
+                        {type === "BUY" ? "Buy" : type === "SELL" ? "Sell" : type}
                     </Badge>
                 );
             },
@@ -216,9 +192,7 @@ export default function VATPage() {
                 return (
                     <div className="text-right font-mono">
                         {amount > 0 ? (
-                            <span className="text-red-600 font-medium">
-                                ₹{amount.toFixed(2)}
-                            </span>
+                            <span className="text-red-600 font-medium">₹{amount.toFixed(2)}</span>
                         ) : (
                             <span className="text-gray-300">-</span>
                         )}
@@ -240,9 +214,7 @@ export default function VATPage() {
                 return (
                     <div className="text-right font-mono">
                         {amount > 0 ? (
-                            <span className="text-green-600 font-medium">
-                                ₹{amount.toFixed(2)}
-                            </span>
+                            <span className="text-green-600 font-medium">₹{amount.toFixed(2)}</span>
                         ) : (
                             <span className="text-gray-300">-</span>
                         )}
@@ -321,10 +293,7 @@ export default function VATPage() {
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[...Array(3)].map((_, index) => (
-                                <div
-                                    key={index}
-                                    className="bg-white p-4 rounded-lg border"
-                                >
+                                <div key={index} className="bg-white p-4 rounded-lg border">
                                     <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
                                     <div className="h-5 bg-gray-200 rounded w-16"></div>
                                 </div>
@@ -348,10 +317,7 @@ export default function VATPage() {
                         <div className="mb-6">
                             <div className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-lg">
                                 {[...Array(3)].map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className="h-8 bg-gray-200 rounded"
-                                    ></div>
+                                    <div key={index} className="h-8 bg-gray-200 rounded"></div>
                                 ))}
                             </div>
                         </div>
@@ -411,10 +377,7 @@ export default function VATPage() {
                             <div className="h-4 bg-gray-200 rounded w-32"></div>
                             <div className="flex gap-2">
                                 {[...Array(5)].map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className="h-8 w-8 bg-gray-200 rounded"
-                                    ></div>
+                                    <div key={index} className="h-8 w-8 bg-gray-200 rounded"></div>
                                 ))}
                             </div>
                         </div>
@@ -437,9 +400,7 @@ export default function VATPage() {
     return (
         <section className="container mx-auto px-6 py-8 max-w-7xl">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    VAT Ledger
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">VAT Ledger</h1>
                 <p className="text-gray-600">
                     Professional VAT Account Ledger - Buy vs Sell VAT Analysis
                 </p>
@@ -453,11 +414,7 @@ export default function VATPage() {
                             Total Debits (Dr.)
                         </CardTitle>
                         <div className="text-green-600">
-                            <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     fillRule="evenodd"
                                     d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
@@ -470,9 +427,7 @@ export default function VATPage() {
                         <div className="text-2xl font-bold text-green-600">
                             ₹{stats.totalDebits.toFixed(2)}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            VAT Buy (Purchases)
-                        </p>
+                        <p className="text-xs text-muted-foreground">VAT Buy (Purchases)</p>
                     </CardContent>
                 </Card>
 
@@ -482,11 +437,7 @@ export default function VATPage() {
                             Total Credits (Cr.)
                         </CardTitle>
                         <div className="text-red-600">
-                            <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     fillRule="evenodd"
                                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -499,9 +450,7 @@ export default function VATPage() {
                         <div className="text-2xl font-bold text-red-600">
                             ₹{stats.totalCredits.toFixed(2)}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            VAT Sell (Sales)
-                        </p>
+                        <p className="text-xs text-muted-foreground">VAT Sell (Sales)</p>
                     </CardContent>
                 </Card>
 
@@ -511,11 +460,7 @@ export default function VATPage() {
                             Net Balance
                         </CardTitle>
                         <div className="text-blue-600">
-                            <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     fillRule="evenodd"
                                     d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
@@ -527,17 +472,13 @@ export default function VATPage() {
                     <CardContent>
                         <div
                             className={`text-2xl font-bold ${
-                                stats.balance >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
+                                stats.balance >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                         >
                             ₹{stats.balance.toFixed(2)}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.balance >= 0
-                                ? "VAT Payable"
-                                : "VAT Refundable"}
+                            {stats.balance >= 0 ? "VAT Payable" : "VAT Refundable"}
                         </p>
                     </CardContent>
                 </Card>
@@ -548,11 +489,7 @@ export default function VATPage() {
                             Total Entries
                         </CardTitle>
                         <div className="text-purple-600">
-                            <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
@@ -561,9 +498,7 @@ export default function VATPage() {
                         <div className="text-2xl font-bold text-purple-600">
                             {stats.entriesCount}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            VAT Transactions
-                        </p>
+                        <p className="text-xs text-muted-foreground">VAT Transactions</p>
                     </CardContent>
                 </Card>
             </div>
@@ -572,11 +507,7 @@ export default function VATPage() {
             <Card className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-blue-900 flex items-center gap-2">
-                        <svg
-                            className="w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 fillRule="evenodd"
                                 d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
@@ -589,29 +520,21 @@ export default function VATPage() {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div className="bg-white p-4 rounded-lg border">
-                            <div className="text-gray-600 mb-1">
-                                Opening Balance
-                            </div>
+                            <div className="text-gray-600 mb-1">Opening Balance</div>
                             <div className="font-bold text-gray-900">₹0.00</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg border">
-                            <div className="text-gray-600 mb-1">
-                                Current Period
-                            </div>
+                            <div className="text-gray-600 mb-1">Current Period</div>
                             <div className="font-bold text-blue-600">
                                 Dr: ₹{stats.totalDebits.toFixed(2)} | Cr: ₹
                                 {stats.totalCredits.toFixed(2)}
                             </div>
                         </div>
                         <div className="bg-white p-4 rounded-lg border">
-                            <div className="text-gray-600 mb-1">
-                                Closing Balance
-                            </div>
+                            <div className="text-gray-600 mb-1">Closing Balance</div>
                             <div
                                 className={`font-bold ${
-                                    stats.balance >= 0
-                                        ? "text-green-600"
-                                        : "text-red-600"
+                                    stats.balance >= 0 ? "text-green-600" : "text-red-600"
                                 }`}
                             >
                                 ₹{Math.abs(stats.balance).toFixed(2)}{" "}
@@ -626,11 +549,7 @@ export default function VATPage() {
             <Card className="border-2 border-gray-200">
                 <CardHeader className="bg-gray-50 border-b">
                     <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        <svg
-                            className="w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 fillRule="evenodd"
                                 d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z"
@@ -641,42 +560,19 @@ export default function VATPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Tabs
-                        value={activeTab}
-                        onValueChange={setActiveTab}
-                        className="w-full"
-                    >
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="px-6 pt-6">
                             <TabsList className="grid w-full grid-cols-3 mb-6">
-                                <TabsTrigger
-                                    value="all"
-                                    className="text-sm font-semibold"
-                                >
+                                <TabsTrigger value="all" className="text-sm font-semibold">
                                     All Entries ({vatEntries.length})
                                 </TabsTrigger>
-                                <TabsTrigger
-                                    value="buy"
-                                    className="text-sm font-semibold"
-                                >
+                                <TabsTrigger value="buy" className="text-sm font-semibold">
                                     Buy VAT - Dr (
-                                    {
-                                        vatEntries.filter(
-                                            (e) => e.type === "BUY"
-                                        ).length
-                                    }
-                                    )
+                                    {vatEntries.filter((e) => e.type === "BUY").length})
                                 </TabsTrigger>
-                                <TabsTrigger
-                                    value="sell"
-                                    className="text-sm font-semibold"
-                                >
+                                <TabsTrigger value="sell" className="text-sm font-semibold">
                                     Sell VAT - Cr (
-                                    {
-                                        vatEntries.filter(
-                                            (e) => e.type === "SELL"
-                                        ).length
-                                    }
-                                    )
+                                    {vatEntries.filter((e) => e.type === "SELL").length})
                                 </TabsTrigger>
                             </TabsList>
                         </div>
@@ -700,16 +596,10 @@ export default function VATPage() {
                                             </span>
                                             <div className="flex gap-8">
                                                 <span className="text-red-600 font-mono">
-                                                    Total Dr: ₹
-                                                    {stats.totalDebits.toFixed(
-                                                        2
-                                                    )}
+                                                    Total Dr: ₹{stats.totalDebits.toFixed(2)}
                                                 </span>
                                                 <span className="text-green-600 font-mono">
-                                                    Total Cr: ₹
-                                                    {stats.totalCredits.toFixed(
-                                                        2
-                                                    )}
+                                                    Total Cr: ₹{stats.totalCredits.toFixed(2)}
                                                 </span>
                                                 <span
                                                     className={`font-bold font-mono ${
@@ -718,13 +608,8 @@ export default function VATPage() {
                                                             : "text-red-600"
                                                     }`}
                                                 >
-                                                    Balance: ₹
-                                                    {Math.abs(
-                                                        stats.balance
-                                                    ).toFixed(2)}{" "}
-                                                    {stats.balance >= 0
-                                                        ? "Cr"
-                                                        : "Dr"}
+                                                    Balance: ₹{Math.abs(stats.balance).toFixed(2)}{" "}
+                                                    {stats.balance >= 0 ? "Cr" : "Dr"}
                                                 </span>
                                             </div>
                                         </div>
@@ -749,8 +634,7 @@ export default function VATPage() {
                                                 Buy VAT Summary:
                                             </span>
                                             <span className="text-red-600 font-mono font-bold">
-                                                Total Buy VAT (Dr): ₹
-                                                {stats.buyVat.toFixed(2)}
+                                                Total Buy VAT (Dr): ₹{stats.buyVat.toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
@@ -774,8 +658,7 @@ export default function VATPage() {
                                                 Sell VAT Summary:
                                             </span>
                                             <span className="text-green-600 font-mono font-bold">
-                                                Total Sell VAT (Cr): ₹
-                                                {stats.sellVat.toFixed(2)}
+                                                Total Sell VAT (Cr): ₹{stats.sellVat.toFixed(2)}
                                             </span>
                                         </div>
                                     </div>

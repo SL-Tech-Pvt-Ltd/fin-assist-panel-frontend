@@ -10,6 +10,7 @@ interface EntityListProps {
     error: Error | null;
     onDelete: (id: string) => Promise<void>;
     onEdit: (id: string, entity: Partial<Entity>) => Promise<void>;
+    canManage?: boolean;
 }
 
 export const EntityList = ({
@@ -17,6 +18,7 @@ export const EntityList = ({
     loading,
     onDelete,
     onEdit,
+    canManage = false,
 }: EntityListProps) => {
     const columns: ColumnDef<Entity>[] = [
         {
@@ -48,18 +50,22 @@ export const EntityList = ({
             header: "Actions",
             cell: (props) => (
                 <div className="flex space-x-2">
-                    <RemoveModal
-                        title="Remove Entity"
-                        description="Are you sure you want to remove this entity?"
-                        onRemove={() => onDelete(props.row.original.id)}
-                    />
-                    <AddEntity
-                        addEntity={(entity: Partial<Entity>) =>
-                            onEdit(props.row.original.id, entity)
-                        }
-                        entity={props.row.original}
-                        text="Edit"
-                    />
+                    {canManage && (
+                        <>
+                            <RemoveModal
+                                title="Remove Entity"
+                                description="Are you sure you want to remove this entity?"
+                                onRemove={() => onDelete(props.row.original.id)}
+                            />
+                            <AddEntity
+                                addEntity={(entity: Partial<Entity>) =>
+                                    onEdit(props.row.original.id, entity)
+                                }
+                                entity={props.row.original}
+                                text="Edit"
+                            />
+                        </>
+                    )}
                 </div>
             ),
             enableSorting: false,

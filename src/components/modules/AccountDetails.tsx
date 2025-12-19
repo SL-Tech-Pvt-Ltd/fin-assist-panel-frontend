@@ -15,6 +15,7 @@ import { EditAccountModal } from "../modals/EditAccountModal";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const chequeColumns: ColumnDef<Transaction>[] = [
     {
@@ -35,6 +36,7 @@ const chequeColumns: ColumnDef<Transaction>[] = [
 const AccountDetails = ({ account, isLoading, error, type = "BANK" }: AccountDetailsProps) => {
     const [localAccount, setLocalAccount] = useState<Account | null>(account);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const { hasAllPermissions } = usePermissions();
     const paymentColumns: ColumnDef<Transaction>[] = [
         {
             header: "Description",
@@ -206,15 +208,16 @@ const AccountDetails = ({ account, isLoading, error, type = "BANK" }: AccountDet
             <div className="bg-gray-100 p-6 rounded-lg">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-gray-800">Account Details</h2>
-                    {(localAccount.type === "BANK" || localAccount.type === "BANK_OD") && (
-                        <Button
-                            onClick={() => setIsEditModalOpen(true)}
-                            variant="outline"
-                            size="sm"
-                        >
-                            Edit Account
-                        </Button>
-                    )}
+                    {(localAccount.type === "BANK" || localAccount.type === "BANK_OD") &&
+                        hasAllPermissions(["ACCOUNT_UPDATE"]) && (
+                            <Button
+                                onClick={() => setIsEditModalOpen(true)}
+                                variant="outline"
+                                size="sm"
+                            >
+                                Edit Account
+                            </Button>
+                        )}
                 </div>
                 <div className="flex items-center justify-between mt-4">
                     <div>
@@ -280,10 +283,12 @@ const AccountDetails = ({ account, isLoading, error, type = "BANK" }: AccountDet
                             <TabsTrigger value="sell">Income & Sales</TabsTrigger>
                             <TabsTrigger value="others">Other Transactions</TabsTrigger>
                         </div>
-                        <AddTransactionDialog
-                            account={localAccount}
-                            onAddTransaction={handleAddTransaction}
-                        />
+                        {hasAllPermissions(["ACCOUNT_UPDATE"]) && (
+                            <AddTransactionDialog
+                                account={localAccount}
+                                onAddTransaction={handleAddTransaction}
+                            />
+                        )}
                     </TabsList>
                     <TabsContent value="all" defaultChecked>
                         <div>

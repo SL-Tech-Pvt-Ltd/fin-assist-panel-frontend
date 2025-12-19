@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import {
     ArrowLeft,
     Edit,
@@ -121,6 +122,8 @@ const PublishModal: React.FC<{
 };
 
 const SingleProductPage = () => {
+    useRequirePermissions("PRODUCT_READ");
+    const { hasPermission } = usePermissions();
     const { productId } = useParams<{ productId: string }>() as {
         productId: string;
     };
@@ -343,25 +346,31 @@ const SingleProductPage = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsEditDialogOpen(true)}
-                        disabled={loading}
-                    >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Product
-                    </Button>
-                    <PublishModal
-                        isPublished={product.isPublished}
-                        onToggle={handleTogglePublish}
-                        loading={publishLoading}
-                    />
-                    <RemoveModal
-                        title="Delete Product"
-                        text="Delete Product"
-                        description="Are you sure you want to delete this product? This action cannot be undone."
-                        onRemove={handleDeleteProduct}
-                    />
+                    {hasPermission("PRODUCT_UPDATE") && (
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsEditDialogOpen(true)}
+                                disabled={loading}
+                            >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Product
+                            </Button>
+                            <PublishModal
+                                isPublished={product.isPublished}
+                                onToggle={handleTogglePublish}
+                                loading={publishLoading}
+                            />
+                        </>
+                    )}
+                    {hasPermission("PRODUCT_ADMIN") && (
+                        <RemoveModal
+                            title="Delete Product"
+                            text="Delete Product"
+                            description="Are you sure you want to delete this product? This action cannot be undone."
+                            onRemove={handleDeleteProduct}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -593,60 +602,74 @@ const SingleProductPage = () => {
                                                         </div>
                                                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                                                             <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() =>
-                                                                        handleEditVariant(variant)
-                                                                    }
-                                                                >
-                                                                    <Edit className="h-4 w-4 mr-1" />
-                                                                    Edit
-                                                                </Button>
-                                                                <Dialog>
-                                                                    <DialogTrigger asChild>
+                                                                {hasPermission(
+                                                                    "PRODUCT_UPDATE"
+                                                                ) && (
+                                                                    <>
                                                                         <Button
                                                                             variant="outline"
                                                                             size="sm"
-                                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                            onClick={() =>
+                                                                                handleEditVariant(
+                                                                                    variant
+                                                                                )
+                                                                            }
                                                                         >
-                                                                            <Trash2 className="h-4 w-4 mr-1" />
-                                                                            Delete
+                                                                            <Edit className="h-4 w-4 mr-1" />
+                                                                            Edit
                                                                         </Button>
-                                                                    </DialogTrigger>
-                                                                    <DialogContent>
-                                                                        <DialogTitle>
-                                                                            Delete Variant
-                                                                        </DialogTitle>
-                                                                        <DialogDescription>
-                                                                            Are you sure you want to
-                                                                            delete the variant "
-                                                                            {variant.name}
-                                                                            "? This action cannot be
-                                                                            undone.
-                                                                        </DialogDescription>
-                                                                        <DialogFooter className="flex justify-end gap-2">
-                                                                            <DialogClose asChild>
-                                                                                <Button variant="secondary">
-                                                                                    Cancel
-                                                                                </Button>
-                                                                            </DialogClose>
-                                                                            <DialogClose asChild>
+                                                                        <Dialog>
+                                                                            <DialogTrigger asChild>
                                                                                 <Button
-                                                                                    variant="destructive"
-                                                                                    onClick={() =>
-                                                                                        handleDeleteVariant(
-                                                                                            variant.id
-                                                                                        )
-                                                                                    }
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                                                                 >
                                                                                     <Trash2 className="h-4 w-4 mr-1" />
                                                                                     Delete
                                                                                 </Button>
-                                                                            </DialogClose>
-                                                                        </DialogFooter>
-                                                                    </DialogContent>
-                                                                </Dialog>
+                                                                            </DialogTrigger>
+                                                                            <DialogContent>
+                                                                                <DialogTitle>
+                                                                                    Delete Variant
+                                                                                </DialogTitle>
+                                                                                <DialogDescription>
+                                                                                    Are you sure you
+                                                                                    want to delete
+                                                                                    the variant "
+                                                                                    {variant.name}
+                                                                                    "? This action
+                                                                                    cannot be
+                                                                                    undone.
+                                                                                </DialogDescription>
+                                                                                <DialogFooter className="flex justify-end gap-2">
+                                                                                    <DialogClose
+                                                                                        asChild
+                                                                                    >
+                                                                                        <Button variant="secondary">
+                                                                                            Cancel
+                                                                                        </Button>
+                                                                                    </DialogClose>
+                                                                                    <DialogClose
+                                                                                        asChild
+                                                                                    >
+                                                                                        <Button
+                                                                                            variant="destructive"
+                                                                                            onClick={() =>
+                                                                                                handleDeleteVariant(
+                                                                                                    variant.id
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <Trash2 className="h-4 w-4 mr-1" />
+                                                                                            Delete
+                                                                                        </Button>
+                                                                                    </DialogClose>
+                                                                                </DialogFooter>
+                                                                            </DialogContent>
+                                                                        </Dialog>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>

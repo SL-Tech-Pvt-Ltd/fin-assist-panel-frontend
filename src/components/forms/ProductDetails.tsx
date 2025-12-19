@@ -421,7 +421,7 @@ const ProductItemRow: React.FC<ProductItemRowProps> = ({
                     type="number"
                     value={item.rate}
                     onChange={(e) => handleRateChange(parseFloat(e.target.value))}
-                    className="text-right h-9 w-full"
+                    className="text-right h-9 w-full min-w-24"
                     // disabled={!item.variantId || type === "SELL"}
                 />
             </td>

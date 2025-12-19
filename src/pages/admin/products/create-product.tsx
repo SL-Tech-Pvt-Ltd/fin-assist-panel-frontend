@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { BasicDetailsForm } from "./basic-details-form";
 import { OptionsForm } from "./option-form";
@@ -71,6 +72,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
 }
 
 export default function ProductForm() {
+    useRequirePermissions("PRODUCT_CREATE");
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);

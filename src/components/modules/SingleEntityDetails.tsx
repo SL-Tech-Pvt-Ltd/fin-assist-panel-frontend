@@ -36,6 +36,7 @@ import { Link } from "react-router-dom";
 import AddEntity from "../modals/AddEntity";
 import { api } from "@/utils/api";
 import AddPaymentDialog from "../modals/AddPaymentDialog";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface EntityPageProps {
     entity: Entity;
@@ -53,6 +54,7 @@ const EntityPage: React.FC<EntityPageProps> = React.memo(({ entity, accounts = [
         search: "",
         status: "ALL",
     });
+    const { hasAllPermissions } = usePermissions();
 
     // Memoized calculation functions
     const calculateOrderPaidAmount = useCallback((order: Order): number => {
@@ -295,7 +297,7 @@ const EntityPage: React.FC<EntityPageProps> = React.memo(({ entity, accounts = [
         lines.push("");
         lines.push("");
 
-        // All Orders Details
+        // All Orders Details (Compact View)
         lines.push("ALL ORDERS DETAILS");
         lines.push(
             "Order Number,Type,Status,Date,Total Amount,Paid Amount,Remaining,Progress %,Description"
@@ -308,13 +310,73 @@ const EntityPage: React.FC<EntityPageProps> = React.memo(({ entity, accounts = [
                 order.totalAmount > 0 ? ((paidAmount / order.totalAmount) * 100).toFixed(1) : 0;
             const description = (order.description || "").replace(/"/g, '""');
 
+            // Order main row
             lines.push(
                 `${order.orderNumber},${order.type},${order.paymentStatus},${formatDate(
                     order.createdAt
                 )},${order.totalAmount.toFixed(2)},${paidAmount.toFixed(2)},${remaining.toFixed(
                     2
-                )},${progress},"${description}"`
+                )},${progress}%,"${description}"`
             );
+
+            // Order Items (indented with 2 empty cells)
+            if (order.items && order.items.length > 0) {
+                lines.push(",,Product,Quantity,Rate,Discount,Tax,Subtotal");
+                order.items.forEach((item: any) => {
+                    const productName = (item.name || "N/A").replace(/"/g, '""');
+
+                    const quantity = item.quantity || 0;
+                    const rate = item.rate || 0;
+                    const discount = item.discount || 0;
+                    const tax = item.tax || 0;
+                    const subtotal = item.subtotal || quantity * rate - discount + tax;
+
+                    lines.push(
+                        `,,"${productName}",${quantity},${rate.toFixed(2)},${discount.toFixed(
+                            2
+                        )},${tax.toFixed(2)},${subtotal.toFixed(2)}`
+                    );
+                });
+            }
+
+            // Additional Charges (indented with 2 empty cells)
+            if (order.charges && order.charges.length > 0) {
+                lines.push(",,Charge Type,Amount,Beared By Entity");
+                order.charges.forEach((charge) => {
+                    const chargeType = (charge.label || "N/A").replace(/"/g, '""');
+                    const chargeAmount = charge.amount || 0;
+                    const bearedBy = charge.bearedByEntity ? "Yes" : "No";
+                    lines.push(`,,"${chargeType}",${chargeAmount.toFixed(2)},${bearedBy}`);
+                });
+            }
+
+            // Transactions (indented with 2 empty cells)
+            if (order.transactions && order.transactions.length > 0) {
+                lines.push(",,Transaction Date,Amount,Account,Type,Reference,Description");
+                order.transactions.forEach((transaction: any) => {
+                    const txnDate = formatDate(transaction.createdAt || transaction.date);
+                    const txnAmount = transaction.amount || 0;
+                    const txnAccount = (transaction.account?.name || "N/A").replace(/"/g, '""');
+                    const txnType = transaction.type || "PAYMENT";
+                    const txnRef = (
+                        transaction.reference ||
+                        transaction.referenceNumber ||
+                        ""
+                    ).replace(/"/g, '""');
+                    const txnDesc = (
+                        transaction.description ||
+                        transaction.details?.description ||
+                        ""
+                    ).replace(/"/g, '""');
+                    lines.push(
+                        `,,"${txnDate}",${txnAmount.toFixed(
+                            2
+                        )},"${txnAccount}",${txnType},"${txnRef}","${txnDesc}"`
+                    );
+                });
+            }
+
+            lines.push(""); // Empty line between orders
         });
 
         const csvContent = lines.join("\n");
@@ -842,24 +904,28 @@ const EntityPage: React.FC<EntityPageProps> = React.memo(({ entity, accounts = [
                         >
                             <FileText className="h-4 w-4" />
                         </Button>
-                        <AddPaymentDialog
-                            accounts={accounts}
-                            type="MISC"
-                            remainingAmount={Math.abs(stats.netBalance)}
-                            onAddPayment={handleAddPayment}
-                        />
-                        <AddEntity
-                            entity={entity}
-                            addEntity={async (updates) => {
-                                const newEntity = { ...entity, ...updates };
-                                await api.put(
-                                    `/orgs/${entity.organizationId}/entities/${entity.id}`,
-                                    newEntity
-                                );
-                                window.location.reload();
-                            }}
-                            text="Edit"
-                        />
+                        {hasAllPermissions(["ENTITY_UPDATE"]) && (
+                            <>
+                                <AddPaymentDialog
+                                    accounts={accounts}
+                                    type="MISC"
+                                    remainingAmount={Math.abs(stats.netBalance)}
+                                    onAddPayment={handleAddPayment}
+                                />
+                                <AddEntity
+                                    entity={entity}
+                                    addEntity={async (updates) => {
+                                        const newEntity = { ...entity, ...updates };
+                                        await api.put(
+                                            `/orgs/${entity.organizationId}/entities/${entity.id}`,
+                                            newEntity
+                                        );
+                                        window.location.reload();
+                                    }}
+                                    text="Edit"
+                                />
+                            </>
+                        )}
                     </div>
                 </div>
                 {entity.description && (

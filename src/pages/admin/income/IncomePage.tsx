@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,6 +26,8 @@ import {
 } from "@/data/expense-income-types";
 
 export default function IncomePage() {
+    // useRequirePermissions(["ACCOUNT_READ", "ACCOUNT_ADMIN"]);
+    // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [loading, setLoading] = useState(true);
     const [income, setIncome] = useState<ExpenseIncomeTransaction[]>([]);
@@ -68,7 +71,7 @@ export default function IncomePage() {
         try {
             const endDate = new Date();
             const startDate = new Date();
-            
+
             if (selectedPeriod === "month") {
                 startDate.setMonth(startDate.getMonth() - 1);
             } else if (selectedPeriod === "quarter") {
@@ -117,13 +120,14 @@ export default function IncomePage() {
     };
 
     const formatCategory = (category: TransactionCategory) => {
-        return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
-    const filteredIncome = income.filter(inc =>
-        inc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        formatCategory(inc.category).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredIncome = income.filter(
+        (inc) =>
+            inc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            formatCategory(inc.category).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            inc.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const incomeColumns = [
@@ -186,7 +190,7 @@ export default function IncomePage() {
         {
             header: "Recurring",
             accessorKey: "isRecurring",
-            cell: ({ row }: any) => 
+            cell: ({ row }: any) =>
                 row.original.isRecurring ? (
                     <Badge variant="secondary">Recurring</Badge>
                 ) : (
@@ -212,9 +216,7 @@ export default function IncomePage() {
                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Add New Income</DialogTitle>
-                            <DialogDescription>
-                                Create a new income transaction
-                            </DialogDescription>
+                            <DialogDescription>Create a new income transaction</DialogDescription>
                         </DialogHeader>
                         <ExpenseIncomeForm
                             isExpense={false}
@@ -225,7 +227,6 @@ export default function IncomePage() {
                 </Dialog>
             </div>
 
-            {/* Summary Cards */}
             {summary && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <Card>
@@ -258,11 +259,15 @@ export default function IncomePage() {
                             <DollarSign className="h-4 w-4 text-blue-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${summary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div
+                                className={`text-2xl font-bold ${
+                                    summary.netAmount >= 0 ? "text-green-600" : "text-red-600"
+                                }`}
+                            >
                                 {formatCurrency(Math.abs(summary.netAmount))}
                             </div>
                             <p className="text-xs text-gray-500">
-                                {summary.netAmount >= 0 ? 'Profit' : 'Loss'}
+                                {summary.netAmount >= 0 ? "Profit" : "Loss"}
                             </p>
                         </CardContent>
                     </Card>
@@ -274,7 +279,7 @@ export default function IncomePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {summary.byCategory.filter(cat => !cat.isExpense).length}
+                                {summary.byCategory.filter((cat) => !cat.isExpense).length}
                             </div>
                             <p className="text-xs text-gray-500">Active categories</p>
                         </CardContent>

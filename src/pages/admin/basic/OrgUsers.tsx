@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOrg } from "@/providers/org-provider";
 import { api } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 
 import type { RoleAccess, Invite } from "@/data/types";
 
@@ -25,6 +26,8 @@ import UserAccessList from "@/components/lists/UsersAccessList";
 import UserInviteList from "@/components/lists/UserInviteList";
 
 export default function OrgUsers() {
+    useRequirePermissions(["ORGANIZATION_READ", "ORGANIZATION_ADMIN"]);
+    // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [activeTab, setActiveTab] = useState("members");
 

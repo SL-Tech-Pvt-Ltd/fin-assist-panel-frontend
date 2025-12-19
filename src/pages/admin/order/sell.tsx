@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import { Account, Entity, Product } from "@/data/types";
 import { api } from "@/utils/api";
 import BuyProductForm from "@/components/forms/BuyOrderForm";
+import { useRequirePermissions } from "@/hooks/use-permissions";
 export const SellOrderPage = () => {
+    useRequirePermissions("ORDER_CREATE");
     const { orgId } = useOrg();
     const [products, setProducts] = useState<Product[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -22,9 +24,7 @@ export const SellOrderPage = () => {
                     api.get(`/orgs/${orgId}/products`),
                     api.get(`/orgs/${orgId}/accounts`),
                     api.get(`/orgs/${orgId}/entities`),
-                ]).then((responses) =>
-                    responses.map((response) => response.data)
-                );
+                ]).then((responses) => responses.map((response) => response.data));
                 setProducts(products);
                 setAccounts(accounts);
                 setEntities(entities);

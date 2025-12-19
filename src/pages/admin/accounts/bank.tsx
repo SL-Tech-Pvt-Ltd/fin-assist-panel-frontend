@@ -5,8 +5,11 @@ import { Account } from "@/data/types";
 import AccountCard from "@/components/cards/AccountCard";
 import AccountDetails from "@/components/modules/AccountDetails";
 import CreateAccountForm from "@/components/forms/CreateAccountForm";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 
 export default function BankAccounts() {
+    useRequirePermissions("ACCOUNT_READ");
+    const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,7 +56,9 @@ export default function BankAccounts() {
                     <h2 className="text-2xl font-bold text-gray-800">Bank Accounts</h2>
                     <p className="text-sm text-gray-500">View and manage your bank accounts</p>
                 </div>
-                <CreateAccountForm type="BANK" onSubmit={onSubmit} disableType={true} />
+                {hasPermission("ACCOUNT_CREATE") && (
+                    <CreateAccountForm type="BANK" onSubmit={onSubmit} disableType={true} />
+                )}
             </div>
 
             {/* Loading State */}
