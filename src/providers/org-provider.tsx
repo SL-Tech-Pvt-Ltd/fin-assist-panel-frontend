@@ -1,4 +1,4 @@
-import { Entity, Organization, OrganizationRole, Permission } from "@/data/types";
+import { Entity, Organization, Permission } from "@/data/types";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/utils/api";
@@ -44,11 +44,6 @@ interface OrgContextData {
     myPermissions: Permission[];
     refetch: () => void;
 
-    roles: OrganizationRole[];
-    updateRole: (roleId: string, updatedData: Partial<OrganizationRole>) => void;
-    refetchRoleId: (roleId: string) => void;
-    refetchRoles: () => void;
-
     buyCart: Cart;
     updateBuyCart: (cart: Partial<Cart>) => void;
     clearBuyCart: () => void;
@@ -65,10 +60,6 @@ const OrgContext = createContext<OrgContextData>({
     myPermissions: [],
     status: "idle",
     refetch: () => {},
-    roles: [],
-    updateRole: () => {},
-    refetchRoleId: () => {},
-    refetchRoles: () => {},
     buyCart: {
         entity: null,
         tax: 0,
@@ -134,7 +125,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
     const { orgId } = useParams<{ orgId: string }>() as { orgId: string };
     const [status, setStatus] = useState<"loading" | "error" | "success">("loading");
     const [organization, setOrganization] = useState<Organization | null>(null);
-    const [roles, setRoles] = useState<OrganizationRole[]>([]);
     const [buyCart, setBuyCart] = useState<Cart>(() => createInitialState("buy", orgId, null));
     const [sellCart, setSellCart] = useState<Cart>(() => createInitialState("sell", orgId, null));
     const [isOwner, setIsOwner] = useState<boolean>(false);
@@ -144,16 +134,16 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
     const [myPermissions, setMyPermissions] = useState<Permission[]>([]);
 
     useEffect(() => {
-        if (user && organization && roles && roles.length > 0) {
-            if (organization.ownerId === user.id) {
+        if (user && organization) {
+            if (organization.ownerId === user.id || user.isSuperAdmin) {
                 setIsOwner(true);
                 setMyPermissions([]); // Clear permissions when user is owner
                 return;
             }
             setIsOwner(false); // User is not owner
             const myAccess = user.roleAccess?.find((ra) => ra.organizationId === organization.id);
-            if (myAccess) {
-                const myRole = roles.find((r) => r.id === myAccess.organizationRoleId);
+            if (myAccess && myAccess.organizationRoleId && myAccess.organizationRole) {
+                const myRole = myAccess.organizationRole;
                 if (myRole) {
                     setMyPermissions(myRole.permissions);
                 } else {
@@ -163,7 +153,7 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 setMyPermissions([]);
             }
         }
-    }, [user, organization, roles]);
+    }, [user, organization]);
 
     // Persist buyCart to localStorage
     useEffect(() => {
@@ -178,35 +168,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
             localStorage.setItem(`CART-${orgId}-sell`, JSON.stringify(sellCart));
         }
     }, [sellCart, orgId]);
-
-    const refetchRoles = async () => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/roles`)).data;
-            setRoles(data);
-        } catch (error) {
-            console.error("Error fetching roles:", error);
-        }
-    };
-
-    const refetchRoleId = async (roleId: string) => {
-        try {
-            const data = await (await api.get(`/orgs/${orgId}/roles/${roleId}`)).data;
-            setRoles((prev) => {
-                const exists = prev.some((r) => r.id === roleId);
-                if (exists) {
-                    return prev.map((r) => (r.id === roleId ? data : r));
-                } else {
-                    return [...prev, data];
-                }
-            });
-        } catch (error) {
-            console.error("Error fetching role:", error);
-        }
-    };
-
-    const updateRole = (roleId: string, updatedData: Partial<OrganizationRole>) => {
-        setRoles((prev) => prev.map((r) => (r.id === roleId ? { ...r, ...updatedData } : r)));
-    };
 
     const fetchOrganization = async (orgId: string) => {
         try {
@@ -226,7 +187,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
             try {
                 if (orgId && user) {
                     await fetchOrganization(orgId);
-                    await refetchRoles();
                 }
             } catch (error) {
                 setStatus("error");
@@ -285,11 +245,6 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 myPermissions,
                 organization,
                 refetch,
-
-                roles,
-                updateRole,
-                refetchRoleId,
-                refetchRoles,
                 buyCart,
                 updateBuyCart,
                 clearBuyCart,

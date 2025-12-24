@@ -115,6 +115,7 @@ export default function Sidebar() {
         {
             name: "Reports",
             path: getPathname("report"),
+            hidden: !isOwner,
             icon: CashIcon,
         },
         {
@@ -156,6 +157,7 @@ export default function Sidebar() {
         {
             name: "Expenses & Income",
             icon: TransactionIcon,
+            hidden: !isOwner && !myPermissions.some((perm) => perm === "EXPENSE_READ"),
             subItems: [
                 {
                     name: "Expenses",

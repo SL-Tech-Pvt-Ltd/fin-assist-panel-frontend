@@ -26,7 +26,7 @@ import UserAccessList from "@/components/lists/UsersAccessList";
 import UserInviteList from "@/components/lists/UserInviteList";
 
 export default function OrgUsers() {
-    useRequirePermissions(["ORGANIZATION_READ", "ORGANIZATION_ADMIN"]);
+    useRequirePermissions(["ORGANIZATION_ADMIN"]);
     // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [activeTab, setActiveTab] = useState("members");

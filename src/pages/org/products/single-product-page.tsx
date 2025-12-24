@@ -363,7 +363,7 @@ const SingleProductPage = () => {
                             />
                         </>
                     )}
-                    {hasPermission("PRODUCT_ADMIN") && (
+                    {hasPermission("PRODUCT_UPDATE") && (
                         <RemoveModal
                             title="Delete Product"
                             text="Delete Product"

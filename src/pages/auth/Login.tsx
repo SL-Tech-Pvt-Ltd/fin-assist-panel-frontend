@@ -40,7 +40,7 @@ const Login = () => {
                 variant: "destructive",
             });
             if (status === 403) {
-                navigate("/unverified");
+                navigate(`/unverified?email=${encodeURIComponent(data.email)}`);
             }
         }
     };

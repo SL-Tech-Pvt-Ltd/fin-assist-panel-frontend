@@ -143,7 +143,7 @@ const convertAdDateToBsString = (adDateStr: string): string => {
 };
 
 const ReportPage = () => {
-    useRequirePermissions(["ORDER_READ", "ORDER_ADMIN"]);
+    useRequirePermissions(["ORDER_READ"]);
     const { orgId } = useOrg();
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(false);

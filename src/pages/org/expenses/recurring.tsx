@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Calendar, Play, Pause, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,8 +25,8 @@ import {
 } from "@/data/expense-income-types";
 
 export default function RecurringTransactionsPage() {
-    // useRequirePermissions(["ACCOUNT_READ", "ACCOUNT_ADMIN"]);
-    // const { hasPermission } = usePermissions();
+    useRequirePermissions(["EXPENSE_READ"]);
+    const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [loading, setLoading] = useState(true);
     const [recurringTransactions, setRecurringTransactions] = useState<ExpenseIncomeTransaction[]>(
@@ -287,27 +287,29 @@ export default function RecurringTransactionsPage() {
                         Manage your automatic income and expense transactions
                     </p>
                 </div>
-                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Recurring Transaction
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Add New Recurring Transaction</DialogTitle>
-                            <DialogDescription>
-                                Create a new recurring income or expense transaction
-                            </DialogDescription>
-                        </DialogHeader>
-                        <ExpenseIncomeForm
-                            isExpense={true}
-                            onSubmit={handleAddRecurringTransaction}
-                            onCancel={() => setShowAddDialog(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
+                {hasPermission("EXPENSE_CREATE") && (
+                    <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Recurring Transaction
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Add New Recurring Transaction</DialogTitle>
+                                <DialogDescription>
+                                    Create a new recurring income or expense transaction
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ExpenseIncomeForm
+                                isExpense={true}
+                                onSubmit={handleAddRecurringTransaction}
+                                onCancel={() => setShowAddDialog(false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Card>

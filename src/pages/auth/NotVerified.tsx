@@ -1,19 +1,23 @@
-import { useState } from "react";
-import {
-    Mail,
-    AlertCircle,
-    CheckCircle,
-    Loader2,
-    RefreshCw,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Mail, AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { api } from "@/utils/api";
 
 export default function UnverifiedAccountPage() {
+    const [searchParams] = useSearchParams();
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState("");
     const [statusType, setStatusType] = useState(""); // 'success' | 'error' | ''
+
+    useEffect(() => {
+        const emailFromQuery = searchParams.get("email");
+        if (emailFromQuery) {
+            setEmail(emailFromQuery);
+            setShowEmailForm(true);
+        }
+    }, [searchParams]);
 
     const handleResendEmail = async () => {
         if (!email.trim()) {
@@ -35,9 +39,7 @@ export default function UnverifiedAccountPage() {
             });
 
             if (response.status === 200) {
-                setStatus(
-                    "Verification email sent successfully! Please check your inbox."
-                );
+                setStatus("Verification email sent successfully! Please check your inbox.");
                 setStatusType("success");
                 setEmail("");
                 setShowEmailForm(false);
@@ -64,8 +66,8 @@ export default function UnverifiedAccountPage() {
                         Email Verification Required
                     </h1>
                     <p className="text-gray-600 leading-relaxed">
-                        Your email address is not verified. Please check your
-                        email for a verification link to activate your account.
+                        Your email address is not verified. Please check your email for a
+                        verification link to activate your account.
                     </p>
                 </div>
 
@@ -85,9 +87,7 @@ export default function UnverifiedAccountPage() {
                         )}
                         <p
                             className={`text-sm ${
-                                statusType === "success"
-                                    ? "text-green-800"
-                                    : "text-red-800"
+                                statusType === "success" ? "text-green-800" : "text-red-800"
                             }`}
                         >
                             {status}
@@ -123,9 +123,7 @@ export default function UnverifiedAccountPage() {
                                         type="email"
                                         id="email"
                                         value={email}
-                                        onChange={(e) =>
-                                            setEmail(e.target.value)
-                                        }
+                                        onChange={(e) => setEmail(e.target.value)}
                                         placeholder="Enter your email address"
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors duration-200"
                                         disabled={isLoading}
@@ -172,10 +170,7 @@ export default function UnverifiedAccountPage() {
                 <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                     <p className="text-sm text-gray-500">
                         Need help? Contact our{" "}
-                        <a
-                            href="#"
-                            className="text-blue-600 hover:text-blue-700 font-medium"
-                        >
+                        <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
                             support team
                         </a>
                     </p>

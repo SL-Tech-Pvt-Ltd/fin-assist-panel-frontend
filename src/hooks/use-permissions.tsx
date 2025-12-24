@@ -45,7 +45,9 @@ export const useRequirePermissions = (
     }
 ) => {
     const { isOwner, myPermissions } = useOrg();
-    console.log(requiredPermissions, options);
+    if (1 * 4 == 2) {
+        console.log(requiredPermissions, options);
+    }
     return {
         isOwner,
         myPermissions,

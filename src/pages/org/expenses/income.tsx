@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
+import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,8 +26,8 @@ import {
 } from "@/data/expense-income-types";
 
 export default function IncomePage() {
-    // useRequirePermissions(["ACCOUNT_READ", "ACCOUNT_ADMIN"]);
-    // const { hasPermission } = usePermissions();
+    useRequirePermissions(["EXPENSE_READ"]);
+    const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
     const [loading, setLoading] = useState(true);
     const [income, setIncome] = useState<ExpenseIncomeTransaction[]>([]);
@@ -206,25 +206,29 @@ export default function IncomePage() {
                     <h1 className="text-2xl font-bold text-gray-900">Income Management</h1>
                     <p className="text-gray-600">Track and manage your business income</p>
                 </div>
-                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Income
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Add New Income</DialogTitle>
-                            <DialogDescription>Create a new income transaction</DialogDescription>
-                        </DialogHeader>
-                        <ExpenseIncomeForm
-                            isExpense={false}
-                            onSubmit={handleAddIncome}
-                            onCancel={() => setShowAddDialog(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
+                {hasPermission("EXPENSE_CREATE") && (
+                    <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Income
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Add New Income</DialogTitle>
+                                <DialogDescription>
+                                    Create a new income transaction
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ExpenseIncomeForm
+                                isExpense={false}
+                                onSubmit={handleAddIncome}
+                                onCancel={() => setShowAddDialog(false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             {summary && (

@@ -188,10 +188,6 @@ export const routes: RouteObject[] = [
                                 element: <SingleOrderPage />,
                                 path: ":orderId",
                             },
-                            // {
-                            //     element: <EditOrderPage />,
-                            //     path: ":orderId/edit",
-                            // },
                             {
                                 element: <BuyOrderPage />,
                                 path: "buy",

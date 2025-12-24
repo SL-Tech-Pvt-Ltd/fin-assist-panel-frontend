@@ -24,29 +24,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AVAILABLE_PERMISSIONS: { value: Permission; label: string; category: string }[] = [
-    { value: "ORGANIZATION_READ", label: "Read Organization", category: "Organization" },
     { value: "ORGANIZATION_UPDATE", label: "Update Organization", category: "Organization" },
     { value: "ORGANIZATION_ADMIN", label: "Admin Organization", category: "Organization" },
     { value: "ACCOUNT_READ", label: "Read Accounts", category: "Account" },
     { value: "ACCOUNT_CREATE", label: "Create Accounts", category: "Account" },
     { value: "ACCOUNT_UPDATE", label: "Update Accounts", category: "Account" },
-    { value: "ACCOUNT_ADMIN", label: "Admin Accounts", category: "Account" },
     { value: "PRODUCT_READ", label: "Read Products", category: "Product" },
     { value: "PRODUCT_CREATE", label: "Create Products", category: "Product" },
     { value: "PRODUCT_UPDATE", label: "Update Products", category: "Product" },
-    { value: "PRODUCT_ADMIN", label: "Admin Products", category: "Product" },
     { value: "ENTITY_READ", label: "Read Entities", category: "Entity" },
     { value: "ENTITY_CREATE", label: "Create Entities", category: "Entity" },
     { value: "ENTITY_UPDATE", label: "Update Entities", category: "Entity" },
-    { value: "ENTITY_ADMIN", label: "Admin Entities", category: "Entity" },
     { value: "ORDER_READ", label: "Read Orders", category: "Order" },
     { value: "ORDER_CREATE", label: "Create Orders", category: "Order" },
     { value: "ORDER_UPDATE", label: "Update Orders", category: "Order" },
-    { value: "ORDER_ADMIN", label: "Admin Orders", category: "Order" },
     { value: "POS_READ", label: "Read POS", category: "POS" },
     { value: "POS_CREATE", label: "Create POS", category: "POS" },
     { value: "POS_UPDATE", label: "Update POS", category: "POS" },
-    { value: "POS_ADMIN", label: "Admin POS", category: "POS" },
+    { value: "EXPENSE_READ", label: "Read Expenses", category: "Expense" },
+    { value: "EXPENSE_CREATE", label: "Create Expenses", category: "Expense" },
+    { value: "EXPENSE_UPDATE", label: "Update Expenses", category: "Expense" },
 ];
 
 const groupPermissionsByCategory = () => {
@@ -109,9 +106,9 @@ interface RoleWithMembers extends OrganizationRole {
 }
 
 export default function OrgRoles() {
-    useRequirePermissions(["ORGANIZATION_READ", "ORGANIZATION_ADMIN"]);
+    useRequirePermissions(["ORGANIZATION_ADMIN"]);
     const { hasPermission } = usePermissions();
-    const { orgId, refetchRoles } = useOrg();
+    const { orgId } = useOrg();
     const [rolesWithMembers, setRolesWithMembers] = useState<RoleWithMembers[]>([]);
 
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -138,7 +135,7 @@ export default function OrgRoles() {
     }, [fetchMemberCounts]);
 
     const handleRefresh = async () => {
-        await Promise.all([refetchRoles(), fetchMemberCounts()]);
+        await fetchMemberCounts();
     };
 
     const handleOpenDialog = (role?: OrganizationRole) => {
@@ -182,15 +179,20 @@ export default function OrgRoles() {
                     (p) => p !== permission && !dependents.includes(p)
                 );
             } else {
-                // Selecting: add this permission and all its dependencies
-                const dependencies = getPermissionDependencies(permission);
-                const toAdd = [permission, ...dependencies];
+                // Special case: if selecting ORGANIZATION_ADMIN, select all permissions
+                if (permission === "ORGANIZATION_ADMIN") {
+                    newPermissions = AVAILABLE_PERMISSIONS.map((p) => p.value);
+                } else {
+                    // Selecting: add this permission and all its dependencies
+                    const dependencies = getPermissionDependencies(permission);
+                    const toAdd = [permission, ...dependencies];
 
-                toAdd.forEach((perm) => {
-                    if (!newPermissions.includes(perm)) {
-                        newPermissions.push(perm);
-                    }
-                });
+                    toAdd.forEach((perm) => {
+                        if (!newPermissions.includes(perm)) {
+                            newPermissions.push(perm);
+                        }
+                    });
+                }
             }
 
             return {
@@ -226,7 +228,7 @@ export default function OrgRoles() {
                 });
             }
             handleCloseDialog();
-            await Promise.all([refetchRoles(), fetchMemberCounts()]);
+            await fetchMemberCounts();
         } catch (err: any) {
             toast({
                 title: "Error",

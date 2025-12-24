@@ -10,6 +10,9 @@ export interface User {
     createdAt: string;
     updatedAt: string;
 
+    isSuperAdmin?: boolean;
+    isDemoUser?: boolean;
+
     organizations?: Organization[];
     roleAccess?: RoleAccess[];
 }
@@ -31,77 +34,55 @@ export interface Organization {
 }
 
 // enum Permission {
-//     ORGANIZATION_READ
-//     // ORGANIZATION_CREATE
 //     ORGANIZATION_UPDATE
 //     ORGANIZATION_ADMIN
 
 //     ACCOUNT_READ
 //     ACCOUNT_CREATE
 //     ACCOUNT_UPDATE
-//     ACCOUNT_ADMIN
 
 //     PRODUCT_READ
 //     PRODUCT_CREATE
 //     PRODUCT_UPDATE
-//     PRODUCT_ADMIN
 
 //     ENTITY_READ
 //     ENTITY_CREATE
 //     ENTITY_UPDATE
-//     ENTITY_ADMIN
 
 //     ORDER_READ
 //     ORDER_CREATE
 //     ORDER_UPDATE
-//     ORDER_ADMIN
 
 //     POS_READ
 //     POS_CREATE
 //     POS_UPDATE
-//     POS_ADMIN
-// }
 
-// model OrganizationRole {
-//     id String @id @default(cuid())
-
-//     title       String
-//     description String?
-
-//     organizationId String
-//     organization   Organization @relation(fields: [organizationId], references: [id])
-
-//     permissions Permission[]
-
-//     createdAt    DateTime     @default(now())
-//     updatedAt    DateTime     @updatedAt
-//     roleAccesses RoleAccess[]
+//     EXPENSE_READ
+//     EXPENSE_CREATE
+//     EXPENSE_UPDATE
 // }
 
 export type Permission =
-    | "ORGANIZATION_READ"
     | "ORGANIZATION_UPDATE"
     | "ORGANIZATION_ADMIN"
     | "ACCOUNT_READ"
     | "ACCOUNT_CREATE"
     | "ACCOUNT_UPDATE"
-    | "ACCOUNT_ADMIN"
     | "PRODUCT_READ"
     | "PRODUCT_CREATE"
     | "PRODUCT_UPDATE"
-    | "PRODUCT_ADMIN"
     | "ENTITY_READ"
     | "ENTITY_CREATE"
     | "ENTITY_UPDATE"
-    | "ENTITY_ADMIN"
     | "ORDER_READ"
     | "ORDER_CREATE"
     | "ORDER_UPDATE"
-    | "ORDER_ADMIN"
     | "POS_READ"
     | "POS_CREATE"
     | "POS_UPDATE"
-    | "POS_ADMIN";
+    | "EXPENSE_READ"
+    | "EXPENSE_CREATE"
+    | "EXPENSE_UPDATE";
 
 export interface OrganizationRole {
     id: string;
@@ -120,6 +101,7 @@ export interface RoleAccess {
     user?: User;
 
     organizationRoleId?: string | null;
+    organizationRole?: OrganizationRole | null;
 
     role?: OrganizationRole;
 

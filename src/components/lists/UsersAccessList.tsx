@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { RoleAccess } from "@/data/types";
+import { useState, useEffect, useCallback } from "react";
+import { RoleAccess, OrganizationRole } from "@/data/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { TableComponent } from "../modules/Table";
 import { Loader2, Shield } from "lucide-react";
@@ -30,8 +30,23 @@ const UserAccessList: React.FC<UserAccessListProps> = ({
     inviteUser,
     onRoleUpdate,
 }) => {
-    const { orgId, roles } = useOrg();
+    const { orgId } = useOrg();
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [roles, setRoles] = useState<OrganizationRole[]>([]);
+
+    const fetchRoles = useCallback(async () => {
+        if (!orgId) return;
+        try {
+            const res = await api.get(`/orgs/${orgId}/roles`);
+            setRoles(res.data);
+        } catch (err) {
+            console.error("Failed to fetch roles:", err);
+        }
+    }, [orgId]);
+
+    useEffect(() => {
+        fetchRoles();
+    }, [fetchRoles]);
 
     const handleRoleChange = async (userId: string, roleId: string | null) => {
         setUpdatingUserId(userId);

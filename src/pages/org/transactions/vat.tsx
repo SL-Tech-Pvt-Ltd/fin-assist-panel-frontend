@@ -26,7 +26,7 @@ interface VATEntry {
 }
 
 export default function VATPage() {
-    useRequirePermissions(["ORDER_READ", "ORDER_ADMIN"]);
+    useRequirePermissions(["ORDER_READ"]);
     const { orgId } = useOrg();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
