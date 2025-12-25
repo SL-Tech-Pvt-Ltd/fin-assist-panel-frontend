@@ -66,11 +66,22 @@ const getVariantStock = (variant?: ProductVariant): number => {
     return variant.stock_fifo_queue.reduce((total, entry) => total + entry.availableStock, 0);
 };
 
-export default function SinglePOSRegisterPage() {
+interface SinglePOSRegisterPageProps {
+    registerId?: string;
+    onBack?: () => void;
+}
+
+export default function SinglePOSRegisterPage({
+    registerId: registerIdProp,
+    onBack,
+}: SinglePOSRegisterPageProps = {}) {
     useRequirePermissions("POS_READ");
     // const { hasPermission } = usePermissions();
     const { orgId } = useOrg();
-    const { registerId } = useParams<{ registerId: string }>();
+    const { registerId: registerIdParam } = useParams<{ registerId: string }>();
+
+    // Use prop if provided, otherwise fall back to URL param
+    const registerId = registerIdProp || registerIdParam;
 
     // Core states
     const [loading, setLoading] = useState(true);
@@ -406,11 +417,17 @@ export default function SinglePOSRegisterPage() {
         return (
             <div className="h-screen flex flex-col items-center justify-center gap-4">
                 <p className="text-muted-foreground">Register not found</p>
-                <Link to={`/org/${orgId}/pos`}>
-                    <Button variant="outline">
+                {onBack ? (
+                    <Button variant="outline" onClick={onBack}>
                         <ChevronLeft className="h-4 w-4 mr-1" /> Back
                     </Button>
-                </Link>
+                ) : (
+                    <Link to={`/org/${orgId}/pos`}>
+                        <Button variant="outline">
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Back
+                        </Button>
+                    </Link>
+                )}
             </div>
         );
     }
@@ -423,11 +440,17 @@ export default function SinglePOSRegisterPage() {
                 <p className="text-sm text-muted-foreground">
                     Final Balance: {formatCurrency(register.actualClosingBalance)}
                 </p>
-                <Link to={`/org/${orgId}/pos`}>
-                    <Button variant="outline">
+                {onBack ? (
+                    <Button variant="outline" onClick={onBack}>
                         <ChevronLeft className="h-4 w-4 mr-1" /> Back to Registers
                     </Button>
-                </Link>
+                ) : (
+                    <Link to={`/org/${orgId}/pos`}>
+                        <Button variant="outline">
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Registers
+                        </Button>
+                    </Link>
+                )}
             </div>
         );
     }
@@ -437,12 +460,21 @@ export default function SinglePOSRegisterPage() {
             {/* Top Bar */}
             <div className="bg-white border-b px-4 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link
-                        to={`/org/${orgId}/pos`}
-                        className="text-muted-foreground hover:text-foreground"
-                    >
-                        <ChevronLeft className="h-5 w-5" />
-                    </Link>
+                    {onBack ? (
+                        <button
+                            onClick={onBack}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                    ) : (
+                        <Link
+                            to={`/org/${orgId}/pos`}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </Link>
+                    )}
                     <div>
                         <h1 className="font-semibold">{register.title}</h1>
                     </div>

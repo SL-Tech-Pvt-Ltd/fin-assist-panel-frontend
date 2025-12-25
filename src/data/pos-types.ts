@@ -12,6 +12,7 @@ export interface POSRegister {
     organizationId: string;
     createdAt: string;
     updatedAt: string;
+    createdByUserId: string | null;
     // For list endpoint
     _count?: {
         orders: number;

@@ -43,7 +43,6 @@ import RecurringTransactionsPage from "./pages/org/expenses/recurring";
 import FinAssistHomepage from "./pages/HomePage";
 import ReportPage from "./pages/org/basic/report";
 import POSRegistersPage from "./pages/org/pos/all-pos";
-import SinglePOSRegisterPage from "./pages/org/pos/single-pos";
 
 export const routes: RouteObject[] = [
     {
@@ -233,16 +232,7 @@ export const routes: RouteObject[] = [
                     },
                     {
                         path: "pos",
-                        children: [
-                            {
-                                path: "",
-                                element: <POSRegistersPage />,
-                            },
-                            {
-                                path: ":registerId",
-                                element: <SinglePOSRegisterPage />,
-                            },
-                        ],
+                        element: <POSRegistersPage />,
                     },
                 ],
             },

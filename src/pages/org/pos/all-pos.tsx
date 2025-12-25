@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, Search, Eye, Edit, Lock, MoreHorizontal } from "lucide-react";
 // import { useRequirePermissions, usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
@@ -29,19 +28,27 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useOrg } from "@/providers/org-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { api } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { POSRegister, CreatePOSRegisterData, ClosePOSRegisterData } from "@/data/pos-types";
+import SinglePOSRegisterPage from "./single-pos";
 
 export default function POSRegistersPage() {
     // useRequirePermissions("POS_READ");
     // const { hasPermission } = usePermissions();
     const { orgId, myPermissions, isOwner } = useOrg();
-    const navigate = useNavigate();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [registers, setRegisters] = useState<POSRegister[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState<"all" | "open" | "closed">("all");
+
+    // State for managing single register view
+    const [activeRegisterId, setActiveRegisterId] = useState<string | null>(null);
+
+    // Track if this is the initial load to only auto-redirect once
+    const hasAutoRedirected = useRef(false);
 
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -59,15 +66,25 @@ export default function POSRegistersPage() {
     const [editFormData, setEditFormData] = useState({ title: "", description: "" });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (orgId) loadRegisters();
-    }, [orgId]);
+    const loadRegisters = useCallback(async () => {
+        if (!orgId) return;
 
-    const loadRegisters = async () => {
         try {
             setLoading(true);
             const response = await api.get(`/orgs/${orgId}/pos-registers`);
-            setRegisters(response.data || []);
+            const registersData = response.data || [];
+            setRegisters(registersData);
+
+            // Check if user has an open register they created (only on first load)
+            if (user && !hasAutoRedirected.current) {
+                const userOpenRegister = registersData.find(
+                    (reg: POSRegister) => reg.createdByUserId === user.id && !reg.isClosed
+                );
+                if (userOpenRegister && !isOwner) {
+                    setActiveRegisterId(userOpenRegister.id);
+                    hasAutoRedirected.current = true;
+                }
+            }
         } catch (error) {
             toast({
                 title: "Error",
@@ -77,7 +94,11 @@ export default function POSRegistersPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [orgId, user]);
+
+    useEffect(() => {
+        loadRegisters();
+    }, [loadRegisters]);
 
     const handleCreateRegister = async () => {
         if (!createFormData.title.trim()) {
@@ -183,6 +204,19 @@ export default function POSRegistersPage() {
 
     const openCount = registers.filter((r) => !r.isClosed).length;
 
+    // If an active register is selected, show the single register view
+    if (activeRegisterId) {
+        return (
+            <SinglePOSRegisterPage
+                registerId={activeRegisterId}
+                onBack={() => {
+                    setActiveRegisterId(null);
+                    loadRegisters(); // Refresh the list
+                }}
+            />
+        );
+    }
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
@@ -268,7 +302,7 @@ export default function POSRegistersPage() {
                                     className="cursor-pointer hover:bg-muted/50"
                                     onClick={() => {
                                         if (isOwner || myPermissions.includes("POS_UPDATE")) {
-                                            navigate(`/org/${orgId}/pos/${register.id}`);
+                                            setActiveRegisterId(register.id);
                                         }
                                     }}
                                 >
@@ -324,9 +358,7 @@ export default function POSRegistersPage() {
                                                 <DropdownMenuItem
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        navigate(
-                                                            `/org/${orgId}/pos/${register.id}`
-                                                        );
+                                                        setActiveRegisterId(register.id);
                                                     }}
                                                 >
                                                     <Eye className="h-4 w-4 mr-2" />
