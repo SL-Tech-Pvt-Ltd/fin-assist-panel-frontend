@@ -33,10 +33,11 @@ import { api } from "@/utils/api";
 import { toast } from "@/hooks/use-toast";
 import { POSRegister, CreatePOSRegisterData, ClosePOSRegisterData } from "@/data/pos-types";
 import SinglePOSRegisterPage from "./single-pos";
+import { usePermissions, useRequirePermissions } from "@/hooks/use-permissions";
 
 export default function POSRegistersPage() {
-    // useRequirePermissions("POS_READ");
-    // const { hasPermission } = usePermissions();
+    useRequirePermissions("POS_READ");
+    const { hasPermission } = usePermissions();
     const { orgId, myPermissions, isOwner } = useOrg();
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -227,7 +228,7 @@ export default function POSRegistersPage() {
                         {openCount} open · {registers.length - openCount} closed
                     </p>
                 </div>
-                {isOwner || myPermissions.includes("POS_CREATE") ? (
+                {isOwner || myPermissions?.includes("POS_CREATE") ? (
                     <Button onClick={() => setShowCreateDialog(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         New Register
@@ -301,7 +302,7 @@ export default function POSRegistersPage() {
                                     key={register.id}
                                     className="cursor-pointer hover:bg-muted/50"
                                     onClick={() => {
-                                        if (isOwner || myPermissions.includes("POS_UPDATE")) {
+                                        if (hasPermission("POS_READ")) {
                                             setActiveRegisterId(register.id);
                                         }
                                     }}
@@ -339,12 +340,7 @@ export default function POSRegistersPage() {
                                             <DropdownMenuTrigger
                                                 asChild
                                                 onClick={(e) => e.stopPropagation()}
-                                                disabled={
-                                                    !(
-                                                        isOwner ||
-                                                        myPermissions.includes("POS_UPDATE")
-                                                    )
-                                                }
+                                                disabled={!(isOwner || hasPermission("POS_UPDATE"))}
                                             >
                                                 <Button
                                                     variant="ghost"

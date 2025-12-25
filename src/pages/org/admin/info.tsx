@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useState } from "react";
 import { Building, Mail, Globe, CreditCard, Clock, Camera, Upload } from "lucide-react";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions, useRequirePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { RemoveModal } from "@/components/modals/RemoveModal";
 import { FaAddressBook } from "react-icons/fa";
 
 export default function OrgInfoPage() {
+    useRequirePermissions(["ORGANIZATION_UPDATE"]);
     const { hasPermission } = usePermissions();
     const { orgId, refetch, organization } = useOrg();
     const { toast } = useToast();

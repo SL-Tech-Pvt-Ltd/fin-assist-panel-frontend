@@ -41,7 +41,7 @@ interface OrgContextData {
     status: "idle" | "loading" | "error" | "success";
     organization: Organization | null;
     isOwner: boolean;
-    myPermissions: Permission[];
+    myPermissions: Permission[] | null;
     refetch: () => void;
 
     buyCart: Cart;
@@ -57,7 +57,7 @@ const OrgContext = createContext<OrgContextData>({
     orgId: "",
     organization: null,
     isOwner: false,
-    myPermissions: [],
+    myPermissions: null,
     status: "idle",
     refetch: () => {},
     buyCart: {
@@ -131,26 +131,28 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
 
     const { user } = useAuth();
 
-    const [myPermissions, setMyPermissions] = useState<Permission[]>([]);
+    const [myPermissions, setMyPermissions] = useState<Permission[] | null>(null);
 
     useEffect(() => {
         if (user && organization) {
             if (organization.ownerId === user.id || user.isSuperAdmin) {
                 setIsOwner(true);
                 setMyPermissions([]); // Clear permissions when user is owner
-                return;
-            }
-            setIsOwner(false); // User is not owner
-            const myAccess = user.roleAccess?.find((ra) => ra.organizationId === organization.id);
-            if (myAccess && myAccess.organizationRoleId && myAccess.organizationRole) {
-                const myRole = myAccess.organizationRole;
-                if (myRole) {
-                    setMyPermissions(myRole.permissions);
+            } else {
+                setIsOwner(false); // User is not owner
+                const myAccess = user.roleAccess?.find(
+                    (ra) => ra.organizationId === organization.id
+                );
+                if (myAccess && myAccess.organizationRoleId && myAccess.organizationRole) {
+                    const myRole = myAccess.organizationRole;
+                    if (myRole) {
+                        setMyPermissions(myRole.permissions);
+                    } else {
+                        setMyPermissions([]);
+                    }
                 } else {
                     setMyPermissions([]);
                 }
-            } else {
-                setMyPermissions([]);
             }
         }
     }, [user, organization]);
@@ -253,7 +255,7 @@ export const OrgProvider: React.FC<OrgProviderProps> = ({ children }) => {
                 clearSellCart,
             }}
         >
-            {status === "loading" ? (
+            {status === "loading" || myPermissions === null || organization === null ? (
                 <div className="flex items-center justify-center h-screen w-screen bg-gray-100">
                     <div className="flex items-center justify-center h-16 w-16 border-4 border-t-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
                 </div>

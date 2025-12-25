@@ -65,44 +65,44 @@ export default function Sidebar() {
         {
             name: "Buy Product",
             path: getPathname("orders/buy"),
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_CREATE"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_CREATE"),
             icon: BuyIcon,
         },
         {
             name: "Sell Product",
             path: getPathname("orders/sell"),
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_CREATE"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_CREATE"),
             icon: SellIcon,
         },
         {
             name: "POS",
             path: getPathname("pos"),
             icon: DashboardIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "POS_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "POS_READ"),
         },
         {
             name: "Products",
             path: "/products",
             icon: ProductIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "PRODUCT_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("products"),
                     icon: ProductIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "PRODUCT_READ"),
                 },
                 {
                     name: "Create",
                     path: getPathname("products/create"),
                     icon: ProductIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_CREATE"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "PRODUCT_CREATE"),
                 },
                 {
                     name: "Categories",
                     path: getPathname("categories"),
                     icon: CategoryIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "PRODUCT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "PRODUCT_READ"),
                 },
             ],
         },
@@ -110,7 +110,7 @@ export default function Sidebar() {
             name: "Entity/Party",
             path: getPathname("entity"),
             icon: EntityIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ENTITY_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ENTITY_READ"),
         },
         {
             name: "Reports",
@@ -121,31 +121,31 @@ export default function Sidebar() {
         {
             name: "Transactions",
             icon: TransactionIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("transactions/all"),
                     icon: TransactionIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "Buy",
                     path: getPathname("transactions/buy"),
                     icon: TransactionIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "Sell",
                     path: getPathname("transactions/sell"),
                     icon: TransactionIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_READ"),
                 },
                 {
                     name: "VAT",
                     path: getPathname("transactions/vat"),
                     icon: TransactionIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ORDER_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORDER_READ"),
                 },
             ],
         },
@@ -157,7 +157,7 @@ export default function Sidebar() {
         {
             name: "Expenses & Income",
             icon: TransactionIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "EXPENSE_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "EXPENSE_READ"),
             subItems: [
                 {
                     name: "Expenses",
@@ -179,37 +179,37 @@ export default function Sidebar() {
         {
             name: "Accounts",
             icon: AccountIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
             subItems: [
                 {
                     name: "All",
                     path: getPathname("accounts/view"),
                     icon: AllAccountIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Bank",
                     path: getPathname("accounts/bank"),
                     icon: BankAccountIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Bank-OD",
                     path: getPathname("accounts/bank-od"),
                     icon: BankAccountIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Cheque",
                     path: getPathname("accounts/cheques"),
                     icon: ChequeAccountIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
                 },
                 {
                     name: "Cash",
                     path: getPathname("accounts/cash_counter"),
                     icon: CashIcon,
-                    hidden: !isOwner && !myPermissions.some((perm) => perm === "ACCOUNT_READ"),
+                    hidden: !isOwner && !myPermissions?.some((perm) => perm === "ACCOUNT_READ"),
                 },
             ],
         },
@@ -217,19 +217,19 @@ export default function Sidebar() {
             name: "Org Settings",
             path: getPathname("info"),
             icon: OrgIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_UPDATE"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORGANIZATION_UPDATE"),
         },
         {
             name: "Team",
             path: getPathname("users"),
             icon: OrgIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_ADMIN"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORGANIZATION_ADMIN"),
         },
         {
             name: "Roles",
             path: getPathname("roles"),
             icon: OrgIcon,
-            hidden: !isOwner && !myPermissions.some((perm) => perm === "ORGANIZATION_ADMIN"),
+            hidden: !isOwner && !myPermissions?.some((perm) => perm === "ORGANIZATION_ADMIN"),
         },
     ];
 
