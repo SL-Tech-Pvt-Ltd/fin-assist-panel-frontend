@@ -30,7 +30,7 @@ interface EditVariantFormData {
     name: string;
     description: string;
     price: number;
-    estimatedPrice: number;
+    minSellingPrice: number;
     stock: number;
     code: string;
     sku: string;
@@ -59,7 +59,7 @@ const EditVariantDialog: React.FC<EditVariantDialogProps> = ({
             name: "",
             description: "",
             price: 0,
-            estimatedPrice: 0,
+            minSellingPrice: 0,
             stock: 0,
             code: "",
             sku: "",
@@ -73,6 +73,7 @@ const EditVariantDialog: React.FC<EditVariantDialogProps> = ({
             setValue("description", variant.description || "");
             setValue("price", variant.price);
             setValue("code", variant.code);
+            setValue("minSellingPrice", variant.minSellingPrice || 0);
             setValue("sku", variant.sku);
 
             // Initialize images from existing URLs
@@ -122,7 +123,7 @@ const EditVariantDialog: React.FC<EditVariantDialogProps> = ({
                     name: data.name,
                     description: data.description,
                     price: parseFloat(data.price.toString()),
-                    estimatedPrice: parseFloat(data.estimatedPrice.toString()),
+                    minSellingPrice: parseFloat(data.minSellingPrice.toString()),
                     stock: parseInt(data.stock.toString()),
                     code: data.code,
                     sku: data.sku,
@@ -264,6 +265,29 @@ const EditVariantDialog: React.FC<EditVariantDialogProps> = ({
                                 />
                                 {errors.price && (
                                     <p className="text-red-500 text-sm">{errors.price.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="price">Min Sell Price</Label>
+                                <Input
+                                    id="minSellingPrice"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    {...register("minSellingPrice", {
+                                        required: "Min Sell price is required",
+                                        min: {
+                                            value: 0,
+                                            message: "Min Sell price must be positive",
+                                        },
+                                    })}
+                                    disabled={isLoading}
+                                />
+                                {errors.minSellingPrice && (
+                                    <p className="text-red-500 text-sm">
+                                        {errors.minSellingPrice.message}
+                                    </p>
                                 )}
                             </div>
                         </div>

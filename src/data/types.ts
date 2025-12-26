@@ -197,7 +197,6 @@ export interface ProductVariant {
     isBase?: boolean;
     price: number;
     buyPrice: number;
-    estimatedPrice: number;
     minSellingPrice?: number;
     stock: number;
     values?: any;
@@ -218,10 +217,6 @@ export interface Product {
     description?: string | null;
     image?: string | null;
     imageUrls?: string[];
-    price: number;
-    buyPrice: number;
-    estimatedPrice: number;
-    stock: number;
     isPublished?: boolean;
     code: string;
     sku: string;
@@ -248,7 +243,6 @@ export interface Order {
     tax: number;
     totalAmount: number;
 
-    netProfit: number;
     totalGrossProfit: number;
     totalNettProfit: number;
     totalAboveMinSelling: number;

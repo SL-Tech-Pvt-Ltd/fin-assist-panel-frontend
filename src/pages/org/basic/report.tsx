@@ -398,7 +398,55 @@ const ReportPage = () => {
         },
         {
             accessorKey: "netProfit",
-            header: "Profit",
+            header: "Nett Profit",
+            cell: ({ getValue }: any) => {
+                const profit = getValue() || 0;
+                return (
+                    <span
+                        className={`font-semibold ${
+                            profit >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                    >
+                        {formatCurrency(profit)}
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: "totalGrossProfit",
+            header: "Gross Profit",
+            cell: ({ getValue }: any) => {
+                const profit = getValue() || 0;
+                return (
+                    <span
+                        className={`font-semibold ${
+                            profit >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                    >
+                        {formatCurrency(profit)}
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: "totalEstimatedProfit",
+            header: "Estimated Profit",
+            cell: ({ getValue }: any) => {
+                const profit = getValue() || 0;
+                return (
+                    <span
+                        className={`font-semibold ${
+                            profit >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                    >
+                        {formatCurrency(profit)}
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: "totalAboveMinSelling",
+            header: "Above Min Selling Price",
             cell: ({ getValue }: any) => {
                 const profit = getValue() || 0;
                 return (

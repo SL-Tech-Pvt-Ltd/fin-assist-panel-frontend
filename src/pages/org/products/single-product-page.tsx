@@ -692,26 +692,17 @@ const SingleProductPage = () => {
                                                                 Selling Price
                                                             </div>
                                                             <div className="text-lg font-bold text-purple-900">
-                                                                {variant.price || 0}
+                                                                {formatCurrency(variant.price || 0)}{" "}
                                                             </div>
-                                                            {/* <div className="text-xs text-purple-600">
-                                                                Transactions
-                                                            </div> */}
                                                         </div>
                                                         <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
                                                             <div className="font-medium text-amber-800">
-                                                                Last Activity
+                                                                Min Selling Price
                                                             </div>
-                                                            <div className="text-sm font-bold text-amber-900">
-                                                                {variant.items &&
-                                                                variant.items.length > 0
-                                                                    ? formatDate(
-                                                                          variant.items[
-                                                                              variant.items.length -
-                                                                                  1
-                                                                          ].createdAt
-                                                                      )
-                                                                    : "No activity"}
+                                                            <div className="text-lg font-bold text-amber-900">
+                                                                {formatCurrency(
+                                                                    variant.minSellingPrice || 0
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="bg-emerald-50 p-3 rounded-md border border-emerald-200">
