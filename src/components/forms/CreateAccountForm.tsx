@@ -4,7 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { FaUser, FaMoneyBillWave, FaCalendarAlt } from "react-icons/fa";
-import type { Account, ACCOUNT_TYPE } from "@/data/types";
+import type { Account, AccountType } from "@/data/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface CreateAccountFormProps {
-    type?: ACCOUNT_TYPE;
+    type?: AccountType;
     ref?: React.RefObject<HTMLButtonElement>;
     onSubmit: (account: Account) => Promise<void>;
     avoidCashCounter?: boolean;
@@ -51,7 +51,7 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({
         formState: { errors },
     } = useForm<Account>({ defaultValues: { type: type, interestRate: 0 } });
 
-    const accountTypes: ACCOUNT_TYPE[] = ["BANK", "BANK_OD", "CHEQUE", "MISC"];
+    const accountTypes: AccountType[] = ["BANK", "BANK_OD", "CHEQUE", "MISC"];
     const accountType = watch("type");
 
     const submitForm = async (data: Account) => {

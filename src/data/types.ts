@@ -1,66 +1,60 @@
+export type AccountStatus = "UNVERIFIED" | "VERIFIED" | "SUSPENDED" | "DELETED";
+
 export interface User {
-    id?: string;
+    id: string;
     email: string;
     password: string;
     name: string;
-    phone?: string | null;
     bio?: string | null;
-    avatar?: string | null;
     address?: string | null;
+    avatar?: string | null;
+    phone?: string | null;
+    status: AccountStatus;
+    isSuperAdmin: boolean;
+    isDemoUser: boolean;
     createdAt: string;
     updatedAt: string;
-
-    isSuperAdmin?: boolean;
-    isDemoUser?: boolean;
-
-    organizations?: Organization[];
     roleAccess?: RoleAccess[];
+    organizations?: Organization[];
 }
 
+export interface AccountVerification {
+    id: string;
+    userId: string;
+    user?: User;
+    token: string;
+    expires: string;
+    verified: boolean;
+    createdAt: string;
+}
+
+export interface PasswordResetRequest {
+    id: string;
+    userId: string;
+    user?: User;
+    token: string;
+    expires: string;
+    used: boolean;
+    createdAt: string;
+}
 export interface Organization {
-    id?: string;
+    id: string;
     name: string;
     ownerId: string;
-    description: string | null;
+    owner?: User;
+    vatStatus?: "always" | "never" | "conditional" | null;
+    description?: string | null;
     logo?: string | null;
     contact?: string | null;
     pan?: string | null;
     vat?: string | null;
-    vatStatus?: "always" | "never" | "conditional" | null;
-    depreciationRate: number | null;
     domain?: string | null;
-    createdAt?: string;
-    updatedAt?: string;
+    depreciationRate?: number | null;
+    deletedAt?: string | null;
+    defaultRoleId?: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
-
-// enum Permission {
-//     ORGANIZATION_UPDATE
-//     ORGANIZATION_ADMIN
-
-//     ACCOUNT_READ
-//     ACCOUNT_CREATE
-//     ACCOUNT_UPDATE
-
-//     PRODUCT_READ
-//     PRODUCT_CREATE
-//     PRODUCT_UPDATE
-
-//     ENTITY_READ
-//     ENTITY_CREATE
-//     ENTITY_UPDATE
-
-//     ORDER_READ
-//     ORDER_CREATE
-//     ORDER_UPDATE
-
-//     POS_READ
-//     POS_CREATE
-//     POS_UPDATE
-
-//     EXPENSE_READ
-//     EXPENSE_CREATE
-//     EXPENSE_UPDATE
-// }
 
 export type Permission =
     | "ORGANIZATION_UPDATE"
@@ -109,69 +103,75 @@ export interface RoleAccess {
     createdAt: string;
 }
 
+export type InviteStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+
 export interface Invite {
     id: string;
-    organizationId: string;
     email: string;
-    status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+    status: InviteStatus;
+    organizationId: string;
+    organization?: Organization;
     createdAt: string;
     updatedAt: string;
-
-    organization?: Organization;
 }
 
-export type ACCOUNT_TYPE = "BANK" | "BANK_OD" | "CASH_COUNTER" | "CHEQUE" | "MISC";
+export type AccountType = "BANK" | "BANK_OD" | "CASH_COUNTER" | "CHEQUE" | "MISC";
 
 export interface AccountDetails {
-    accountNumber: string;
-    bankName: string;
-    chequeDate: string | null;
+    accountNumber?: string;
+    bankName?: string;
+    chequeDate?: string | null;
 }
 
 export interface Account {
     id: string;
     name: string;
     balance: number;
-    type: ACCOUNT_TYPE;
-
-    details?: AccountDetails;
-
-    organizationId: string;
-    createdAt: string;
-    updatedAt: string;
-
+    type: AccountType;
     limit?: number | null;
-
+    details?: {
+        accountNumber?: string;
+        bankName?: string;
+        chequeDate?: string | null;
+    };
     interestRate?: number | null;
     accumulatedInterest?: number | null;
-    interestChanges: { date: string; rate: number }[];
+    interestChanges?: any;
+    organizationId: string;
+    organization?: Organization;
+    createdAt: string;
+    updatedAt: string;
+    isDeleted?: boolean;
     transactions?: Transaction[];
+    expenseIncomeTransactions?: ExpenseIncomeTransaction[];
 }
 
 export interface Entity {
     id: string;
     name: string;
     phone: string;
-    email: string | null;
-    description: string | null;
-    isMerchant: boolean | null;
-    isVendor: boolean | null;
+    email?: string | null;
+    description?: string | null;
+    isDefault: boolean;
+    isMerchant: boolean;
+    isVendor: boolean;
     organizationId: string;
+    organization?: Organization;
     createdAt: string;
     updatedAt: string;
-    isDefault?: boolean;
-
+    isDeleted?: boolean;
     orders?: Order[];
+    expenseIncomeTransactions?: ExpenseIncomeTransaction[];
 }
 
 export interface Category {
     id: string;
     name: string;
-    description: string | null;
+    description?: string | null;
     organizationId: string;
+    organization?: Organization;
     createdAt: string;
     updatedAt: string;
-
     products?: Product[];
 }
 
@@ -184,27 +184,27 @@ export interface StockFiFoQueue {
     availableStock: number;
     createdAt: string;
     updatedAt: string;
+    productVariant?: ProductVariant;
 }
 
 export interface ProductVariant {
     id: string;
     name: string;
-    description: string | null;
     productId: string;
-
-    buyPrice: number;
+    product?: Product;
+    description?: string | null;
+    imageUrls?: string[];
+    isBase?: boolean;
     price: number;
+    buyPrice: number;
     estimatedPrice: number;
+    minSellingPrice?: number;
     stock: number;
-
-    values: object;
+    values?: any;
     code: string;
     sku: string;
-    imageUrls?: string[] | null;
-
     createdAt: string;
     updatedAt: string;
-
     items?: OrderItem[];
     stock_fifo_queue?: StockFiFoQueue[];
 }
@@ -212,17 +212,26 @@ export interface ProductVariant {
 export interface Product {
     id: string;
     name: string;
-    categoryId: string;
-    imageUrls?: string[] | null;
+    slug?: string | null;
+    categoryId?: string | null;
+    category?: Category | null;
+    description?: string | null;
+    image?: string | null;
+    imageUrls?: string[];
+    price: number;
+    buyPrice: number;
+    estimatedPrice: number;
+    stock: number;
+    isPublished?: boolean;
+    code: string;
     sku: string;
-    description: string | null;
+    options?: any;
+    isDeleted?: boolean;
     organizationId: string;
+    organization?: Organization;
     createdAt: string;
     updatedAt: string;
-    isPublished: boolean;
-
     variants?: ProductVariant[];
-    category?: Category | null;
 }
 
 export type PaymentStatus = "PAID" | "PENDING" | "FAILED" | "CANCELLED" | "PARTIAL";
@@ -238,6 +247,12 @@ export interface Order {
     discount: number;
     tax: number;
     totalAmount: number;
+
+    netProfit: number;
+    totalGrossProfit: number;
+    totalNettProfit: number;
+    totalAboveMinSelling: number;
+    totalEstimatedProfit: number;
 
     paymentStatus: PaymentStatus;
 
@@ -305,47 +320,34 @@ export interface Transaction {
 }
 
 // Expense and Income Management Types
-export enum TransactionCategory {
-    // Expense Categories
-    OFFICE_RENT = "OFFICE_RENT",
-    EMPLOYEE_SALARY = "EMPLOYEE_SALARY",
-    UTILITY_BILLS = "UTILITY_BILLS",
-    OFFICE_SUPPLIES = "OFFICE_SUPPLIES",
-    TRAVEL_EXPENSE = "TRAVEL_EXPENSE",
-    MARKETING_ADVERTISING = "MARKETING_ADVERTISING",
-    PROFESSIONAL_FEES = "PROFESSIONAL_FEES",
-    EQUIPMENT_MAINTENANCE = "EQUIPMENT_MAINTENANCE",
-    INSURANCE = "INSURANCE",
-    TAXES = "TAXES",
-    DONATIONS_GIVEN = "DONATIONS_GIVEN",
-    INTEREST_PAID = "INTEREST_PAID",
-    DEPRECIATION = "DEPRECIATION",
-    MISCELLANEOUS_EXPENSE = "MISCELLANEOUS_EXPENSE",
+export type TransactionCategory =
+    | "OFFICE_RENT"
+    | "EMPLOYEE_SALARY"
+    | "UTILITY_BILLS"
+    | "OFFICE_SUPPLIES"
+    | "TRAVEL_EXPENSE"
+    | "MARKETING_ADVERTISING"
+    | "PROFESSIONAL_FEES"
+    | "EQUIPMENT_MAINTENANCE"
+    | "INSURANCE"
+    | "TAXES"
+    | "DONATIONS_GIVEN"
+    | "INTEREST_PAID"
+    | "DEPRECIATION"
+    | "MISCELLANEOUS_EXPENSE"
+    | "SERVICE_INCOME"
+    | "CONSULTING_INCOME"
+    | "RENTAL_INCOME"
+    | "INTEREST_RECEIVED"
+    | "DONATIONS_RECEIVED"
+    | "COMMISSION_INCOME"
+    | "DIVIDEND_INCOME"
+    | "CAPITAL_GAINS"
+    | "MISCELLANEOUS_INCOME"
+    | "PRODUCT_SALE"
+    | "PRODUCT_PURCHASE";
 
-    // Income Categories
-    SERVICE_INCOME = "SERVICE_INCOME",
-    CONSULTING_INCOME = "CONSULTING_INCOME",
-    RENTAL_INCOME = "RENTAL_INCOME",
-    INTEREST_RECEIVED = "INTEREST_RECEIVED",
-    DONATIONS_RECEIVED = "DONATIONS_RECEIVED",
-    COMMISSION_INCOME = "COMMISSION_INCOME",
-    DIVIDEND_INCOME = "DIVIDEND_INCOME",
-    CAPITAL_GAINS = "CAPITAL_GAINS",
-    MISCELLANEOUS_INCOME = "MISCELLANEOUS_INCOME",
-
-    // Existing for backward compatibility
-    PRODUCT_SALE = "PRODUCT_SALE",
-    PRODUCT_PURCHASE = "PRODUCT_PURCHASE",
-}
-
-export enum RecurrenceType {
-    NONE = "NONE",
-    DAILY = "DAILY",
-    WEEKLY = "WEEKLY",
-    MONTHLY = "MONTHLY",
-    QUARTERLY = "QUARTERLY",
-    YEARLY = "YEARLY",
-}
+export type RecurrenceType = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
 
 export interface ExpenseIncomeTransaction {
     id: string;

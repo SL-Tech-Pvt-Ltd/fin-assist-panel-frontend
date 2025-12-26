@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Entity, Product, Account, Order } from "@/data/types";
@@ -16,40 +16,344 @@ import { useOrg } from "@/providers/org-provider";
 import { Switch } from "../ui/switch";
 import { validateAccountBalances } from "@/utils/validation";
 import { BalanceSummary } from "../modules/balance-summary";
-// import BillUpload from "../modules/bill-upload";
 
-interface OrderProduct {
-    productId: string;
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Final payload structure for order creation API
+ */
+interface CreateOrderPayload {
+    type: "BUY" | "SELL";
+    description?: string;
+    entityId?: string;
+    products: Array<{
+        variantId: string;
+        quantity: number;
+        rate: number;
+        description?: string;
+    }>;
+    payments: Array<{
+        accountId: string;
+        amount: number;
+        date?: string;
+        details?: Record<string, any>;
+    }>;
+    discount?: number;
+    tax?: number;
+    charges?: Array<{
+        name: string;
+        amount: number;
+        isPaidByBusiness?: boolean;
+    }>;
+    orderDate?: string;
+    posRegisterId?: string;
+}
+
+/**
+ * Local state product with additional UI metadata
+ */
+interface LocalOrderProduct {
+    productId: string; // For UI selection
     variantId: string;
     rate: number;
     quantity: number;
     description: string;
 }
 
-interface OrderCharge {
+/**
+ * Local state charge with additional UI metadata
+ */
+interface LocalOrderCharge {
+    id: string; // For React keys
+    name: string;
+    amount: number;
+    type: "fixed" | "percentage";
+    percentage: number;
+    isPaidByBusiness: boolean; // true = business pays (not beared by entity)
+    isVat?: boolean;
+}
+
+/**
+ * Local state payment with additional UI metadata
+ */
+interface LocalOrderPayment {
+    accountId: string;
+    amount: number;
+    details: Record<string, any>;
+}
+
+/**
+ * Organized local form state structure
+ */
+interface OrderFormState {
+    // Step 1: Order Details
+    entity: Entity | null;
+    products: LocalOrderProduct[];
+    discount: number;
+    charges: LocalOrderCharge[];
+    description: string;
+    orderDate: Date;
+
+    // Step 2: Payment Details
+    payments: LocalOrderPayment[];
+
+    // Additional metadata
+    tax: number;
+    isPublic: boolean;
+}
+
+/**
+ * UI workflow step
+ */
+type FormStep = "details" | "payment" | "summary";
+
+/**
+ * Calculation results for memoization
+ */
+interface OrderCalculations {
+    subTotal: number;
+    chargeAmount: number; // Charges paid by entity
+    vendorCharges: number; // Charges paid by business
+    grandTotal: number;
+    totalPaid: number;
+    remainingAmount: number;
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculate subtotal from products
+ */
+const calculateSubTotal = (products: LocalOrderProduct[]): number => {
+    return products.reduce((sum, product) => {
+        const amount = product.rate * product.quantity;
+        return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+};
+
+/**
+ * Calculate charges paid by entity
+ */
+const calculateChargeAmount = (
+    subTotal: number,
+    discount: number,
+    charges: LocalOrderCharge[]
+): number => {
+    const baseAmount = subTotal - discount;
+    return charges
+        .filter((charge) => !charge.isPaidByBusiness)
+        .reduce((sum, charge) => {
+            const chargeAmount =
+                charge.type === "percentage"
+                    ? (baseAmount * charge.percentage) / 100
+                    : charge.amount;
+            return sum + (isNaN(chargeAmount) ? 0 : chargeAmount);
+        }, 0);
+};
+
+/**
+ * Calculate charges paid by business (vendor charges)
+ */
+const calculateVendorCharges = (subTotal: number, charges: LocalOrderCharge[]): number => {
+    return charges
+        .filter((charge) => charge.isPaidByBusiness)
+        .reduce((sum, charge) => {
+            const chargeAmount =
+                charge.type === "percentage" ? (subTotal * charge.percentage) / 100 : charge.amount;
+            return sum + (isNaN(chargeAmount) ? 0 : chargeAmount);
+        }, 0);
+};
+
+/**
+ * Calculate grand total
+ */
+const calculateGrandTotal = (
+    subTotal: number,
+    discount: number,
+    charges: LocalOrderCharge[]
+): number => {
+    const chargeAmount = calculateChargeAmount(subTotal, discount, charges);
+    const total = subTotal - discount + chargeAmount;
+    return Math.max(total, 0);
+};
+
+/**
+ * Calculate total paid amount
+ */
+const calculateTotalPaid = (payments: LocalOrderPayment[]): number => {
+    return payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+};
+
+/**
+ * Calculate remaining amount to be paid
+ */
+const calculateRemainingAmount = (grandTotal: number, totalPaid: number): number => {
+    return Math.max(grandTotal - totalPaid, 0);
+};
+
+/**
+ * Create initial form state with localStorage persistence
+ */
+const createInitialFormState = (
+    type: string,
+    orgId: string,
+    defaultEntity: Entity | null
+): OrderFormState => {
+    const savedState = localStorage.getItem(`CART-${orgId}-${type}`);
+
+    if (savedState) {
+        try {
+            const parsed = JSON.parse(savedState);
+            return {
+                entity: defaultEntity || parsed.entity || null,
+                products: parsed.products || [
+                    { productId: "", variantId: "", rate: 0, quantity: 1, description: "" },
+                ],
+                description: parsed.description || "",
+                discount: parsed.discount || 0,
+                charges: parsed.charges || [],
+                payments: parsed.payments || [],
+                tax: parsed.tax || 0,
+                isPublic: parsed.isPublic || false,
+                orderDate: parsed.orderDate ? new Date(parsed.orderDate) : new Date(),
+            };
+        } catch (error) {
+            console.error("Failed to parse saved state:", error);
+        }
+    }
+
+    return {
+        entity: defaultEntity,
+        description: "",
+        products: [{ productId: "", variantId: "", rate: 0, quantity: 1, description: "" }],
+        discount: 0,
+        charges: [],
+        payments: [],
+        tax: 0,
+        isPublic: false,
+        orderDate: new Date(),
+    };
+};
+
+/**
+ * Convert local state to API payload
+ */
+const convertToPayload = (
+    formState: OrderFormState,
+    type: "BUY" | "SELL",
+    accounts: Account[]
+): CreateOrderPayload => {
+    // Filter valid products
+    const validProducts = formState.products.filter(
+        (p) => p.productId !== "" && p.variantId !== ""
+    );
+
+    // Determine final payments
+    const finalPayments =
+        formState.entity?.isDefault &&
+        type === "SELL" &&
+        accounts.find((acc) => acc.type === "CASH_COUNTER")
+            ? [
+                  {
+                      accountId: accounts.find((acc) => acc.type === "CASH_COUNTER")?.id || "",
+                      amount: calculateGrandTotal(
+                          calculateSubTotal(validProducts),
+                          formState.discount,
+                          formState.charges
+                      ),
+                      details: {},
+                  },
+              ]
+            : formState.payments;
+
+    // Convert charges - only include those paid by entity
+    const entityCharges = formState.charges
+        .filter((charge) => !charge.isPaidByBusiness && charge.amount > 0)
+        .map((charge) => ({
+            name: charge.name,
+            amount: charge.amount,
+            isPaidByBusiness: false,
+        }));
+
+    return {
+        type,
+        entityId: formState.entity?.id,
+        description: formState.description || undefined,
+        products: validProducts.map((p) => ({
+            variantId: p.variantId,
+            quantity: p.quantity,
+            rate: p.rate,
+            description: p.description || undefined,
+        })),
+        payments: finalPayments.map((p) => ({
+            accountId: p.accountId,
+            amount: p.amount,
+            details: p.details,
+        })),
+        discount: formState.discount || undefined,
+        tax: formState.tax || undefined,
+        charges: entityCharges.length > 0 ? entityCharges : undefined,
+        orderDate: formState.orderDate.toISOString(),
+    };
+};
+
+/**
+ * Adapter: Convert legacy charge format to local format
+ */
+const convertLegacyChargesToLocal = (
+    legacyCharges: Array<{
+        id: string;
+        amount: number;
+        label: string;
+        type: "fixed" | "percentage";
+        percentage: number;
+        isVat?: boolean;
+        bearedByEntity: boolean;
+    }>
+): LocalOrderCharge[] => {
+    return legacyCharges.map((charge) => ({
+        id: charge.id,
+        name: charge.label,
+        amount: charge.amount,
+        type: charge.type,
+        percentage: charge.percentage,
+        isPaidByBusiness: !charge.bearedByEntity, // Inverted logic
+        isVat: charge.isVat,
+    }));
+};
+
+/**
+ * Adapter: Convert local charge format to legacy format
+ */
+const convertLocalChargesToLegacy = (
+    localCharges: LocalOrderCharge[]
+): Array<{
     id: string;
     amount: number;
     label: string;
-    isVat?: boolean;
     type: "fixed" | "percentage";
     percentage: number;
+    isVat?: boolean;
     bearedByEntity: boolean;
-}
+}> => {
+    return localCharges.map((charge) => ({
+        id: charge.id,
+        label: charge.name,
+        amount: charge.amount,
+        type: charge.type,
+        percentage: charge.percentage,
+        isVat: charge.isVat,
+        bearedByEntity: !charge.isPaidByBusiness, // Inverted logic
+    }));
+};
 
-interface OrderPayment {
-    amount: number;
-    accountId: string;
-    details: object;
-}
-
-interface OrderFormData {
-    entity: Entity | null;
-    products: OrderProduct[];
-    discount: number;
-    charges: OrderCharge[];
-    payments: OrderPayment[];
-    description: string;
-}
+// ============================================================================
+// COMPONENT PROPS
+// ============================================================================
 
 interface BuyProductFormProps {
     type: "BUY" | "SELL";
@@ -57,54 +361,13 @@ interface BuyProductFormProps {
     products: Product[];
     accounts: Account[];
     addEntity: (entity: Partial<Entity>) => Promise<Entity | null>;
-    onSubmit: (data: object) => Promise<Order> | void;
+    onSubmit: (data: CreateOrderPayload) => Promise<Order> | void;
     defaultEntity?: Entity | null;
 }
 
-// Helper functions for calculations
-const calculateSubTotal = (products: OrderProduct[]): number => {
-    return products.reduce((sum, product) => {
-        const amount = product.rate * product.quantity;
-        return sum + (isNaN(amount) ? 0 : amount);
-    }, 0);
-};
-
-const calculateChargeAmount = (
-    subTotal: number,
-    discount: number,
-    charges: OrderCharge[]
-): number => {
-    const baseAmount = subTotal - discount;
-    return charges
-        .filter((charge) => charge.bearedByEntity === true)
-        .reduce((sum, charge) => {
-            let chargeAmount = 0;
-            if (charge.type === "percentage") {
-                chargeAmount = (baseAmount * charge.percentage) / 100;
-            } else {
-                chargeAmount = charge.amount;
-            }
-            return sum + (isNaN(chargeAmount) ? 0 : chargeAmount);
-        }, 0);
-};
-
-const calculateGrandTotal = (
-    subTotal: number,
-    discount: number,
-    charges: OrderCharge[]
-): number => {
-    const chargeAmount = calculateChargeAmount(subTotal, discount, charges);
-    const total = subTotal - discount + chargeAmount;
-    return Math.max(total, 0);
-};
-
-const calculateTotalPaid = (payments: OrderPayment[]): number => {
-    return payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-};
-
-const calculateRemainingAmount = (grandTotal: number, totalPaid: number): number => {
-    return Math.max(grandTotal - totalPaid, 0);
-};
+// ============================================================================
+// ACCOUNT SELECTION DIALOG COMPONENT
+// ============================================================================
 
 const AccountSelectionDialog = ({
     accounts,
@@ -187,6 +450,10 @@ const AccountSelectionDialog = ({
     );
 };
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export default function BuyProductForm({
     type,
     entities,
@@ -196,173 +463,144 @@ export default function BuyProductForm({
     onSubmit,
     defaultEntity = null,
 }: BuyProductFormProps) {
+    // ========================================================================
+    // HOOKS & CONTEXT
+    // ========================================================================
     const { orgId } = useOrg();
-    // const [formData, setFormData] = useState<OrderFormData>(() =>
-    //     createInitialState(type, orgId, defaultEntity)
-    // );
-    const [orderDate, setOrderDate] = useState<Date | null>(new Date());
-    const { buyCart, updateBuyCart, sellCart, updateSellCart } = useOrg();
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [isAccountSelectionActive, setIsAccountSelectionActive] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-    const [isPublic, setIsPublic] = useState(false);
-    const [currentStep, setCurrentStep] = useState<"details" | "payment" | "summary">("details");
-    // Use the correct cart and updater based on type
-    const formData = useMemo(
-        () => (type === "BUY" ? buyCart : sellCart),
-        [type, buyCart, sellCart]
-    );
-    const setFormData = useMemo(
-        () => (type === "BUY" ? updateBuyCart : updateSellCart),
-        [type, updateBuyCart, updateSellCart]
-    );
-
-    // Toast hook for notifications
-
     const { toast } = useToast();
 
-    // Update state when defaultEntity changes, but only if no entity is currently selected
+    // ========================================================================
+    // STATE MANAGEMENT
+    // ========================================================================
+
+    // Main form state with localStorage persistence
+    const [formState, setFormState] = useState<OrderFormState>(() =>
+        createInitialFormState(type, orgId, defaultEntity)
+    );
+
+    // UI state
+    const [currentStep, setCurrentStep] = useState<FormStep>("details");
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    // Vendor charges handling (for BUY orders)
+    const [isAccountSelectionActive, setIsAccountSelectionActive] = useState(false);
+    const [selectedVendorAccount, setSelectedVendorAccount] = useState<Account | null>(null);
+
+    // ========================================================================
+    // EFFECTS
+    // ========================================================================
+
+    // Persist formState to localStorage
     useEffect(() => {
-        if (defaultEntity && !formData.entity) {
-            setFormData({
-                ...formData,
-                entity: defaultEntity,
-            });
+        if (orgId) {
+            localStorage.setItem(`CART-${orgId}-${type}`, JSON.stringify(formState));
         }
-    }, [defaultEntity, formData.entity, setFormData]);
+    }, [formState, orgId, type]);
 
-    // Save to localStorage whenever formData changes
-    // useEffect(() => {
-    //     localStorage.setItem(
-    //         `order-${orgId}-${type}`,
-    //         JSON.stringify(formData)
-    //     );
-    // }, [formData, type]);
+    // Update entity when defaultEntity changes (only if no entity selected)
+    useEffect(() => {
+        if (defaultEntity && !formState.entity) {
+            setFormState((prev) => ({ ...prev, entity: defaultEntity }));
+        }
+    }, [defaultEntity]);
 
-    // Helper function to get product and variant details for display
-    const getProductDetails = (productId: string, variantId: string) => {
-        const product = products.find((p) => p.id === productId);
-        const variant = product?.variants?.find((v) => v.id === variantId);
-        return {
-            productName: product?.name || "Unknown Product",
-            variantName: variant?.name || "Unknown Variant",
-            unit: "Unit",
-        };
-    };
+    // Auto-set cash counter payment for SELL orders with default entity
+    useEffect(() => {
+        if (defaultEntity && type === "SELL" && defaultEntity.isDefault) {
+            const cashCounterAccount = accounts.find((acc) => acc.type === "CASH_COUNTER");
+            if (cashCounterAccount) {
+                const grandTotal = calculateGrandTotal(
+                    calculateSubTotal(formState.products),
+                    formState.discount,
+                    formState.charges
+                );
+                setFormState((prev) => ({
+                    ...prev,
+                    payments: [
+                        {
+                            accountId: cashCounterAccount.id,
+                            amount: grandTotal,
+                            details: {},
+                        },
+                    ],
+                }));
+            }
+        }
+    }, [type, defaultEntity, accounts]);
 
-    // Memoized calculations
-    const calculations = useMemo(() => {
-        const subTotal = calculateSubTotal(formData.products);
-        const chargeAmount = calculateChargeAmount(subTotal, formData.discount, formData.charges);
-        const grandTotal = calculateGrandTotal(subTotal, formData.discount, formData.charges);
-        const totalPaid = calculateTotalPaid(formData.payments);
+    // ========================================================================
+    // MEMOIZED CALCULATIONS
+    // ========================================================================
+
+    const calculations = useMemo<OrderCalculations>(() => {
+        const subTotal = calculateSubTotal(formState.products);
+        const chargeAmount = calculateChargeAmount(subTotal, formState.discount, formState.charges);
+        const vendorCharges = calculateVendorCharges(subTotal, formState.charges);
+        const grandTotal = calculateGrandTotal(subTotal, formState.discount, formState.charges);
+        const totalPaid = calculateTotalPaid(formState.payments);
         const remainingAmount = calculateRemainingAmount(grandTotal, totalPaid);
-
-        const vendorCharges = formData.charges
-            .filter((charge) => charge.bearedByEntity === false)
-            .reduce((sum, charge) => {
-                let chargeAmount = 0;
-                if (charge.type === "percentage") {
-                    chargeAmount = (subTotal * charge.percentage) / 100;
-                } else {
-                    chargeAmount = charge.amount;
-                }
-                return sum + (isNaN(chargeAmount) ? 0 : chargeAmount);
-            }, 0);
 
         return {
             subTotal,
             chargeAmount,
+            vendorCharges,
             grandTotal,
             totalPaid,
             remainingAmount,
-            vendorCharges,
         };
-    }, [formData.products, formData.discount, formData.charges, formData.payments]);
+    }, [formState.products, formState.discount, formState.charges, formState.payments]);
 
-    useEffect(() => {
-        if (defaultEntity && type === "SELL") {
-            const defaultPayments = accounts.find((acc) => acc.type === "CASH_COUNTER")
-                ? [
-                      {
-                          amount: calculations.grandTotal,
-                          accountId: accounts.find((acc) => acc.type === "CASH_COUNTER")?.id || "",
-                          details: {},
-                      },
-                  ]
-                : [];
-            setFormData({
-                ...formData,
-                payments: defaultPayments,
-            });
-        }
-    }, [type, defaultEntity, calculations.grandTotal]);
+    // ========================================================================
+    // HELPER FUNCTIONS
+    // ========================================================================
 
-    // State update functions
-    const updateFormData = (updates: Partial<OrderFormData>) => {
-        setFormData({
-            ...formData,
-            ...updates,
-        });
-        setError(null);
-    };
+    /**
+     * Get product and variant details for display
+     */
+    const getProductDetails = useCallback(
+        (productId: string, variantId: string) => {
+            const product = products.find((p) => p.id === productId);
+            const variant = product?.variants?.find((v) => v.id === variantId);
+            return {
+                productName: product?.name || "Unknown Product",
+                variantName: variant?.name || "Unknown Variant",
+                unit: "Unit",
+            };
+        },
+        [products]
+    );
 
-    const handleSelectEntity = (entity: Entity | null) => {
-        updateFormData({ entity });
-    };
-
-    const handleUpdateProducts = (products: OrderProduct[]) => {
-        updateFormData({ products });
-    };
-
-    const handleUpdateDiscount = (discount: number) => {
-        updateFormData({ discount: isNaN(discount) ? 0 : discount });
-    };
-
-    const handleUpdateCharges = (charges: OrderCharge[]) => {
-        updateFormData({ charges });
-    };
-
-    const handleUpdatePayments = (payments: OrderPayment[]) => {
-        updateFormData({ payments });
-    };
-
-    const handleAddEntity = async (entity: Partial<Entity>) => {
-        try {
-            const newEntity = await addEntity(entity);
-            if (newEntity) {
-                updateFormData({ entity: newEntity });
-                toast({
-                    title: "Entity added successfully",
-                    description: "The entity has been added and selected.",
-                });
-            }
-        } catch (error) {
-            console.error("Error adding entity:", error);
-            toast({
-                title: "Error adding entity",
-                description: "There was an error adding the entity.",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const resetForm = () => {
-        const resetData: OrderFormData = {
+    /**
+     * Reset form to initial state
+     */
+    const resetForm = useCallback(() => {
+        const resetState: OrderFormState = {
             entity: null,
             products: [{ productId: "", variantId: "", rate: 0, quantity: 1, description: "" }],
             discount: 0,
             charges: [],
             payments: [],
             description: "",
+            tax: 0,
+            isPublic: false,
+            orderDate: new Date(),
         };
-        setFormData(resetData);
+        setFormState(resetState);
         setError(null);
-    };
+        setCurrentStep("details");
+        setSelectedVendorAccount(null);
+    }, []);
 
-    const validateForm = (): string | null => {
-        const validProducts = formData.products.filter(
+    // ========================================================================
+    // VALIDATION FUNCTIONS
+    // ========================================================================
+
+    /**
+     * Validate order details step
+     */
+    const validateOrderDetails = useCallback((): string | null => {
+        const validProducts = formState.products.filter(
             (p) => p.productId !== "" && p.variantId !== ""
         );
 
@@ -370,157 +608,281 @@ export default function BuyProductForm({
             return "Please add at least one product.";
         }
 
-        // Add stock validation for sell orders
+        // Stock validation for sell orders
         if (type === "SELL") {
-            const stockValidation = validateProductQuantities(type, products, formData.products);
+            const stockValidation = validateProductQuantities(type, products, formState.products);
             if (!stockValidation.isValid) {
                 return `Stock validation failed: ${stockValidation.errors.join(", ")}`;
             }
         }
 
         return null;
-    };
+    }, [formState.products, type, products]);
 
-    const validatePaymentForm = (): string | null => {
-        if (!formData.entity && calculations.remainingAmount > 0) {
+    /**
+     * Validate payment details step
+     */
+    const validatePaymentDetails = useCallback((): string | null => {
+        // Require entity for unpaid orders
+        if (!formState.entity && calculations.remainingAmount > 0) {
             return "Select Entity for unpaid order.";
         }
 
-        // For BUY orders, validate account balances using the utility function
+        // Validate account balances for BUY orders
         if (type === "BUY") {
-            const balanceValidation = validateAccountBalances(formData.payments, accounts, type);
+            const balanceValidation = validateAccountBalances(formState.payments, accounts, type);
             if (!balanceValidation.isValid) {
-                return balanceValidation.errors[0]; // Return the first error for display
+                return balanceValidation.errors[0];
             }
         }
 
         return null;
-    };
+    }, [formState.entity, formState.payments, calculations.remainingAmount, type, accounts]);
 
-    const handleContinueToPayment = () => {
-        const validationError = validateForm();
+    /**
+     * Validate final submission
+     */
+    const validateSubmission = useCallback((): string | null => {
+        // Validate vendor charges account for BUY orders
+        if (type === "BUY" && calculations.vendorCharges > 0) {
+            if (!selectedVendorAccount) {
+                return "Please select an account for vendor charges.";
+            }
+            if (selectedVendorAccount.balance < calculations.vendorCharges) {
+                return (
+                    `Insufficient balance in ${selectedVendorAccount.name} for vendor charges. ` +
+                    `Available: Rs ${selectedVendorAccount.balance.toFixed(2)}, ` +
+                    `Required: Rs ${calculations.vendorCharges.toFixed(2)}`
+                );
+            }
+        }
+
+        return null;
+    }, [type, calculations.vendorCharges, selectedVendorAccount]);
+
+    // ========================================================================
+    // EVENT HANDLERS
+    // ========================================================================
+
+    const handleEntitySelect = useCallback((entity: Entity | null) => {
+        setFormState((prev) => ({ ...prev, entity }));
+        setError(null);
+    }, []);
+
+    const handleProductsUpdate = useCallback((products: LocalOrderProduct[]) => {
+        setFormState((prev) => ({ ...prev, products }));
+        setError(null);
+    }, []);
+
+    const handleDiscountUpdate = useCallback((discount: number) => {
+        setFormState((prev) => ({ ...prev, discount: isNaN(discount) ? 0 : discount }));
+        setError(null);
+    }, []);
+
+    const handleChargesUpdate = useCallback((charges: LocalOrderCharge[]) => {
+        setFormState((prev) => ({ ...prev, charges }));
+        setError(null);
+    }, []);
+
+    /**
+     * Adapter handler for legacy charge format from CalculationSelector
+     */
+    const handleLegacyChargesUpdate = useCallback(
+        (
+            legacyCharges: Array<{
+                id: string;
+                amount: number;
+                label: string;
+                type: "fixed" | "percentage";
+                percentage: number;
+                isVat?: boolean;
+                bearedByEntity: boolean;
+            }>
+        ) => {
+            const localCharges = convertLegacyChargesToLocal(legacyCharges);
+            handleChargesUpdate(localCharges);
+        },
+        [handleChargesUpdate]
+    );
+
+    const handlePaymentsUpdate = useCallback((payments: LocalOrderPayment[]) => {
+        setFormState((prev) => ({ ...prev, payments }));
+        setError(null);
+    }, []);
+
+    const handleDescriptionUpdate = useCallback((description: string) => {
+        setFormState((prev) => ({ ...prev, description }));
+    }, []);
+
+    const handleOrderDateUpdate = useCallback((date: Date) => {
+        setFormState((prev) => ({ ...prev, orderDate: date }));
+    }, []);
+
+    const handleIsPublicToggle = useCallback((isPublic: boolean) => {
+        setFormState((prev) => ({ ...prev, isPublic }));
+    }, []);
+
+    const handleAddEntity = useCallback(
+        async (entity: Partial<Entity>) => {
+            try {
+                const newEntity = await addEntity(entity);
+                if (newEntity) {
+                    setFormState((prev) => ({ ...prev, entity: newEntity }));
+                    toast({
+                        title: "Entity added successfully",
+                        description: "The entity has been added and selected.",
+                    });
+                }
+            } catch (error) {
+                console.error("Error adding entity:", error);
+                toast({
+                    title: "Error adding entity",
+                    description: "There was an error adding the entity.",
+                    variant: "destructive",
+                });
+            }
+        },
+        [addEntity, toast]
+    );
+
+    // ========================================================================
+    // STEP NAVIGATION HANDLERS
+    // ========================================================================
+
+    const handleContinueToPayment = useCallback(() => {
+        const validationError = validateOrderDetails();
         if (validationError) {
             setError(validationError);
             return;
         }
         setCurrentStep("payment");
         setError(null);
-    };
+    }, [validateOrderDetails]);
 
-    const handleContinueToSummary = () => {
-        const validationError = validatePaymentForm();
+    const handleContinueToSummary = useCallback(() => {
+        const validationError = validatePaymentDetails();
         if (validationError) {
             setError(validationError);
             return;
         }
         setCurrentStep("summary");
         setError(null);
-    };
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    }, [validatePaymentDetails]);
 
-        // If we're not on the summary step, just continue to next step
-        if (currentStep !== "summary") {
-            return;
-        }
+    const handleBackToDetails = useCallback(() => {
+        setCurrentStep("details");
+        setError(null);
+    }, []);
 
-        if (calculations.vendorCharges > 0 && !selectedAccount) {
-            setIsAccountSelectionActive(true);
-            return;
-        }
+    const handleBackToPayment = useCallback(() => {
+        setCurrentStep("payment");
+        setError(null);
+    }, []);
 
-        // Final balance validation for BUY orders before submission
-        if (type === "BUY") {
-            const balanceValidationError = validatePaymentForm();
-            if (balanceValidationError) {
-                setError(balanceValidationError);
+    // ========================================================================
+    // SUBMISSION HANDLER
+    // ========================================================================
+
+    const handleSubmit = useCallback(
+        async (e?: React.FormEvent) => {
+            e?.preventDefault();
+
+            // If not on summary step, navigate forward
+            if (currentStep !== "summary") {
                 return;
             }
 
-            // Validate vendor charges account balance
-            if (calculations.vendorCharges > 0 && selectedAccount) {
-                if (selectedAccount.balance < calculations.vendorCharges) {
-                    setError(
-                        `Insufficient balance in ${
-                            selectedAccount.name
-                        } for vendor charges. Available: Rs ${selectedAccount.balance.toFixed(
-                            2
-                        )}, Required: Rs ${calculations.vendorCharges.toFixed(2)}`
+            // Check if vendor charges account selection is needed
+            if (type === "BUY" && calculations.vendorCharges > 0 && !selectedVendorAccount) {
+                setIsAccountSelectionActive(true);
+                return;
+            }
+
+            // Final validation
+            const validationError = validateSubmission();
+            if (validationError) {
+                setError(validationError);
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+
+            try {
+                // Convert form state to API payload
+                const payload = convertToPayload(formState, type, accounts);
+
+                // Submit order
+                const createdOrder = await onSubmit(payload);
+
+                // Create vendor charges transaction if needed
+                if (createdOrder && selectedVendorAccount && calculations.vendorCharges > 0) {
+                    await api.post(
+                        `/orgs/${orgId}/accounts/${selectedVendorAccount.id}/transactions`,
+                        {
+                            amount: calculations.vendorCharges,
+                            type: "BUY",
+                            description: `Vendor Charges-NBC from order - ${createdOrder.id}`,
+                            orderId: createdOrder.id,
+                        }
                     );
-                    return;
                 }
-            }
-        }
 
-        setLoading(true);
-        setError(null);
-
-        try {
-            const validProducts = formData.products.filter(
-                (p) => p.productId !== "" && p.variantId !== ""
-            );
-
-            // Determine payments - use cash counter for default entities, otherwise use selected payments
-            const finalPayments =
-                formData.entity?.isDefault &&
-                type === "SELL" &&
-                accounts.find((acc) => acc.type === "CASH_COUNTER")
-                    ? [
-                          {
-                              amount: calculations.grandTotal,
-                              accountId:
-                                  accounts.find((acc) => acc.type === "CASH_COUNTER")?.id || "",
-                              details: {},
-                          },
-                      ]
-                    : formData.payments;
-
-            const submitData = {
-                entityId: formData.entity?.id,
-                products: validProducts,
-                discount: formData.discount,
-                description: formData.description,
-                charges: formData.charges.filter(
-                    (charge) => charge.amount > 0 && charge.bearedByEntity
-                ),
-                type,
-                payments: finalPayments,
-                orderDate: orderDate || new Date(),
-            };
-
-            const createdOrder = await onSubmit(submitData);
-            if (createdOrder && selectedAccount && calculations.vendorCharges > 0) {
-                await api.post(`/orgs/${orgId}/accounts/${selectedAccount.id}/transactions`, {
-                    amount: calculations.vendorCharges,
-                    type: "BUY",
-                    description: `Vendor Charges-NBC from order - ${createdOrder.id}`,
-                    orderId: createdOrder.id,
+                // Success - reset form
+                resetForm();
+                toast({
+                    title: "Order created successfully",
+                    description: "Your order has been created.",
                 });
+            } catch (error) {
+                console.error("Error creating order:", error);
+                setError("Failed to create order. Please try again.");
+                toast({
+                    title: "Error creating order",
+                    description: "There was an error creating your order.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
             }
+        },
+        [
+            currentStep,
+            type,
+            calculations.vendorCharges,
+            selectedVendorAccount,
+            validateSubmission,
+            formState,
+            accounts,
+            onSubmit,
+            orgId,
+            resetForm,
+            toast,
+        ]
+    );
 
-            resetForm();
-            setCurrentStep("details");
-            toast({
-                title: "Order created successfully",
-                description: "Your order has been created.",
-            });
-        } catch (error) {
-            console.error("Error creating order:", error);
-            toast({
-                title: "Error creating order",
-                description: "There was an error creating your order.",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const handleVendorAccountSelect = useCallback(
+        (account: Account) => {
+            setSelectedVendorAccount(account);
+            setIsAccountSelectionActive(false);
+            // Trigger submission after account selection
+            handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+        },
+        [handleSubmit]
+    );
+
+    // ========================================================================
+    // RENDER
+    // ========================================================================
 
     return (
         <div className="p-6 bg-white">
+            {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
                     <h2 className="text-2xl font-semibold">{type} Product</h2>
+
+                    {/* Step Indicator */}
                     <div className="flex items-center space-x-2">
                         <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -553,21 +915,23 @@ export default function BuyProductForm({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    {type === "SELL" && (
-                        <>
-                            <Switch
-                                id="public-switch"
-                                checked={isPublic}
-                                onCheckedChange={(checked) => setIsPublic(checked)}
-                            />
-                            <label htmlFor="public-switch" className="text-sm">
-                                {isPublic ? "Public Sale" : "Private Sale"}
-                            </label>
-                        </>
-                    )}
-                </div>
+
+                {/* Public/Private Toggle for SELL orders */}
+                {type === "SELL" && (
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="public-switch"
+                            checked={formState.isPublic}
+                            onCheckedChange={handleIsPublicToggle}
+                        />
+                        <label htmlFor="public-switch" className="text-sm">
+                            {formState.isPublic ? "Public Sale" : "Private Sale"}
+                        </label>
+                    </div>
+                )}
             </div>
+
+            {/* Step Description */}
             <p className="text-muted-foreground mb-8">
                 {currentStep === "details"
                     ? `Add product to ${type.toLowerCase()} and select ${
@@ -578,8 +942,8 @@ export default function BuyProductForm({
                     : `Review and confirm your ${type.toLowerCase()} order details.`}
             </p>
 
-            {currentStep === "details" ? (
-                // Step 1: Order Details
+            {/* Step 1: Order Details */}
+            {currentStep === "details" && (
                 <form
                     className="space-y-4"
                     onSubmit={(e) => {
@@ -590,25 +954,25 @@ export default function BuyProductForm({
                     <EntitySelector
                         entities={entities}
                         onAddEntity={handleAddEntity}
-                        selectedEntity={formData.entity}
-                        onSelectEntity={handleSelectEntity}
+                        selectedEntity={formState.entity}
+                        onSelectEntity={handleEntitySelect}
                         type={type === "BUY" ? "vendor" : "merchant"}
                     />
 
                     <ProductDetails
                         type={type}
-                        isPublic={isPublic}
+                        isPublic={formState.isPublic}
                         products={products}
-                        onUpdateProducts={handleUpdateProducts}
-                        addedProducts={formData.products}
+                        onUpdateProducts={handleProductsUpdate}
+                        addedProducts={formState.products}
                     />
 
                     <CalculationSelector
                         subTotal={calculations.subTotal}
-                        discount={formData.discount}
-                        setDiscount={handleUpdateDiscount}
-                        charges={formData.charges}
-                        setCharge={handleUpdateCharges}
+                        discount={formState.discount}
+                        setDiscount={handleDiscountUpdate}
+                        charges={convertLocalChargesToLegacy(formState.charges)}
+                        setCharge={handleLegacyChargesUpdate}
                     />
 
                     {error && (
@@ -639,8 +1003,10 @@ export default function BuyProductForm({
                         </Button>
                     </div>
                 </form>
-            ) : currentStep === "payment" ? (
-                // Step 2: Payment
+            )}
+
+            {/* Step 2: Payment */}
+            {currentStep === "payment" && (
                 <form
                     className="space-y-4"
                     onSubmit={(e) => {
@@ -649,17 +1015,17 @@ export default function BuyProductForm({
                     }}
                 >
                     <PaymentSelector
-                        selectedPayments={formData.payments}
-                        setSelectedPayments={handleUpdatePayments}
+                        selectedPayments={formState.payments}
+                        setSelectedPayments={handlePaymentsUpdate}
                         accounts={accounts}
                         grandTotal={calculations.grandTotal}
                         type={type}
                     />
 
                     {/* Balance Summary for BUY orders */}
-                    {type === "BUY" && formData.payments.length > 0 && (
+                    {type === "BUY" && formState.payments.length > 0 && (
                         <BalanceSummary
-                            payments={formData.payments}
+                            payments={formState.payments}
                             accounts={accounts}
                             orderType={type}
                         />
@@ -676,14 +1042,14 @@ export default function BuyProductForm({
                         <Textarea
                             id="orderDescription"
                             placeholder="Enter order description, notes, or special instructions..."
-                            value={formData.description}
-                            onChange={(e) =>
-                                setFormData({ ...formData, description: e.target.value })
-                            }
+                            value={formState.description}
+                            onChange={(e) => handleDescriptionUpdate(e.target.value)}
                             rows={3}
                             className="w-full"
                         />
                     </div>
+
+                    {/* Order Date */}
                     <div className="space-y-2">
                         <label htmlFor="orderDate" className="text-sm font-medium text-gray-700">
                             Order Date
@@ -691,22 +1057,22 @@ export default function BuyProductForm({
                         <input
                             type="date"
                             id="orderDate"
-                            value={orderDate ? orderDate.toISOString().split("T")[0] : ""}
-                            onChange={(e) => setOrderDate(new Date(e.target.value))}
+                            value={formState.orderDate.toISOString().split("T")[0]}
+                            onChange={(e) => handleOrderDateUpdate(new Date(e.target.value))}
                             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
-                    {/* Display calculation summary */}
+                    {/* Calculation Summary */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex justify-between items-center text-sm mb-2">
                             <span>Subtotal:</span>
                             <span>₹{calculations.subTotal.toFixed(2)}</span>
                         </div>
-                        {formData.discount > 0 && (
+                        {formState.discount > 0 && (
                             <div className="flex justify-between items-center text-sm mb-2 text-green-600">
                                 <span>Discount:</span>
-                                <span>-₹{formData.discount.toFixed(2)}</span>
+                                <span>-₹{formState.discount.toFixed(2)}</span>
                             </div>
                         )}
                         {calculations.chargeAmount > 0 && (
@@ -756,7 +1122,7 @@ export default function BuyProductForm({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setCurrentStep("details")}
+                            onClick={handleBackToDetails}
                             className="text-sm text-gray-500 hover:text-gray-700"
                         >
                             Back to Details
@@ -767,8 +1133,10 @@ export default function BuyProductForm({
                         </Button>
                     </div>
                 </form>
-            ) : (
-                // Step 3: Summary & Confirmation
+            )}
+
+            {/* Step 3: Summary & Confirmation */}
+            {currentStep === "summary" && (
                 <div className="space-y-6">
                     {/* Bill-like Summary */}
                     <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
@@ -776,7 +1144,7 @@ export default function BuyProductForm({
                         <div className="text-center border-b pb-4 mb-6">
                             <h3 className="text-xl font-bold">{type} ORDER SUMMARY</h3>
                             <p className="text-sm text-gray-500 mt-1">
-                                {new Date().toLocaleDateString("en-IN", {
+                                {formState.orderDate.toLocaleDateString("en-IN", {
                                     year: "numeric",
                                     month: "long",
                                     day: "numeric",
@@ -792,29 +1160,29 @@ export default function BuyProductForm({
                                 {type === "BUY" ? "Vendor Details" : "Customer Details"}
                             </h4>
                             <div className="bg-gray-50 p-3 rounded">
-                                <p className="font-medium">{formData.entity?.name || "N/A"}</p>
-                                {formData.entity?.phone && (
+                                <p className="font-medium">{formState.entity?.name || "N/A"}</p>
+                                {formState.entity?.phone && (
                                     <p className="text-sm text-gray-600">
-                                        Phone: {formData.entity.phone}
+                                        Phone: {formState.entity.phone}
                                     </p>
                                 )}
-                                {formData.entity?.email && (
+                                {formState.entity?.email && (
                                     <p className="text-sm text-gray-600">
-                                        Email: {formData.entity.email}
+                                        Email: {formState.entity.email}
                                     </p>
                                 )}
                             </div>
                         </div>
 
                         {/* Order Description */}
-                        {formData.description && (
+                        {formState.description && (
                             <div className="mb-6">
                                 <h4 className="font-semibold text-gray-700 mb-2">
                                     Order Description
                                 </h4>
                                 <div className="bg-gray-50 p-3 rounded">
                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                        {formData.description}
+                                        {formState.description}
                                     </p>
                                 </div>
                             </div>
@@ -842,7 +1210,7 @@ export default function BuyProductForm({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {formData.products
+                                        {formState.products
                                             .filter((p) => p.productId !== "" && p.variantId !== "")
                                             .map((product, index) => {
                                                 const details = getProductDetails(
@@ -894,10 +1262,10 @@ export default function BuyProductForm({
                                     <span>Subtotal:</span>
                                     <span>₹{calculations.subTotal.toFixed(2)}</span>
                                 </div>
-                                {formData.discount > 0 && (
+                                {formState.discount > 0 && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount:</span>
-                                        <span>-₹{formData.discount.toFixed(2)}</span>
+                                        <span>-₹{formState.discount.toFixed(2)}</span>
                                     </div>
                                 )}
                                 {calculations.chargeAmount > 0 && (
@@ -920,13 +1288,13 @@ export default function BuyProductForm({
                         </div>
 
                         {/* Payment Details */}
-                        {formData.payments.length > 0 && (
+                        {formState.payments.length > 0 && (
                             <div className="mt-6 border-t pt-4">
                                 <h4 className="font-semibold text-gray-700 mb-3">
                                     Payment Details
                                 </h4>
                                 <div className="space-y-2">
-                                    {formData.payments.map((payment, index) => {
+                                    {formState.payments.map((payment, index) => {
                                         const account = accounts.find(
                                             (acc) => acc.id === payment.accountId
                                         );
@@ -980,7 +1348,7 @@ export default function BuyProductForm({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setCurrentStep("payment")}
+                            onClick={handleBackToPayment}
                             className="text-sm text-gray-500 hover:text-gray-700"
                         >
                             Back to Payment
@@ -996,18 +1364,13 @@ export default function BuyProductForm({
                     </div>
                 </div>
             )}
+
+            {/* Vendor Account Selection Dialog */}
             {isAccountSelectionActive && (
                 <AccountSelectionDialog
                     accounts={accounts}
                     vendorCharges={calculations.vendorCharges}
-                    onSelect={(account) => {
-                        setSelectedAccount(account);
-                        setIsAccountSelectionActive(false);
-                        // Create a synthetic event object and directly call handleSubmit
-                        handleSubmit({
-                            preventDefault: () => {},
-                        } as React.FormEvent);
-                    }}
+                    onSelect={handleVendorAccountSelect}
                     onClose={() => setIsAccountSelectionActive(false)}
                 />
             )}

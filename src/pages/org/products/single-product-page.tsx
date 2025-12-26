@@ -357,7 +357,7 @@ const SingleProductPage = () => {
                                 Edit Product
                             </Button>
                             <PublishModal
-                                isPublished={product.isPublished}
+                                isPublished={product.isPublished || false}
                                 onToggle={handleTogglePublish}
                                 loading={publishLoading}
                             />

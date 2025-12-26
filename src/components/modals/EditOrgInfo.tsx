@@ -1,6 +1,8 @@
-import { Organization } from "@/data/types";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
+
+// Define a DTO for the form to avoid circular reference issues
+
 import {
     Dialog,
     DialogContent,
@@ -14,9 +16,21 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
+// Define a DTO for the form to avoid circular reference issues
+type OrganizationFormDTO = {
+    id?: string;
+    name: string;
+    description?: string | null;
+    contact?: string | null;
+    pan?: string | null;
+    domain?: string | null;
+    depreciationRate?: number | null;
+    vatStatus?: "always" | "never" | "conditional" | null;
+};
+
 interface EditOrgModalProps {
-    onSubmit?: (data: Partial<Organization>) => void;
-    orgData?: Organization;
+    onSubmit?: (data: OrganizationFormDTO) => void;
+    orgData?: Partial<OrganizationFormDTO>;
 }
 
 export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
@@ -29,7 +43,7 @@ export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
         reset,
         setValue,
         formState: { errors, isSubmitting },
-    } = useForm<Partial<Organization>>({
+    } = useForm<OrganizationFormDTO>({
         defaultValues: orgData,
     });
 
@@ -38,12 +52,15 @@ export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
         reset(orgData);
     }, [orgData, reset]);
 
-    const onFormSubmit = async (data: Partial<Organization>) => {
+    const onFormSubmit = async (data: OrganizationFormDTO) => {
         try {
             // Ensure depreciationRate is properly converted to number if provided
             const formattedData = {
                 ...data,
-                depreciationRate: data.depreciationRate ? Number(data.depreciationRate) : null,
+                depreciationRate:
+                    data.depreciationRate !== undefined && data.depreciationRate !== null
+                        ? Number(data.depreciationRate)
+                        : null,
             };
 
             await onSubmit?.(formattedData);
@@ -91,7 +108,7 @@ export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
                                     type={type}
                                     placeholder={`Enter ${label.toLowerCase()}`}
                                     {...register(
-                                        id as keyof Organization,
+                                        id as keyof OrganizationFormDTO,
                                         required
                                             ? {
                                                   required: `${label} is required`,
@@ -115,9 +132,9 @@ export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
                                             : {}
                                     )}
                                 />
-                                {errors[id as keyof Organization] && (
+                                {errors[id as keyof OrganizationFormDTO] && (
                                     <p className="text-sm text-red-500">
-                                        {errors[id as keyof Organization]?.message}
+                                        {errors[id as keyof OrganizationFormDTO]?.message}
                                     </p>
                                 )}
                             </div>
@@ -161,7 +178,7 @@ export default function EditOrgModal({ onSubmit, orgData }: EditOrgModalProps) {
                             <Select
                                 onValueChange={(value) => {
                                     setValue(
-                                        "vatStatus" as keyof Organization,
+                                        "vatStatus",
                                         value as "always" | "never" | "conditional"
                                     );
                                 }}

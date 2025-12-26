@@ -20,7 +20,7 @@ interface AuthProviderProps {
     children: React.ReactNode;
 }
 
-const NonAuthRoutes = ["/unverified"];
+const NonAuthRoutes = ["/unverified", "/"];
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
