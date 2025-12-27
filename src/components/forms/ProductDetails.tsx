@@ -197,7 +197,7 @@ export function ProductDetails({
             )}
 
             <CardContent className="p-6 space-y-4">
-                <ScrollArea className="w-full max-h-[60vh]">
+                <ScrollArea className="w-full">
                     <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-slate-50">
                             <tr className="border-b-2 border-slate-200">
